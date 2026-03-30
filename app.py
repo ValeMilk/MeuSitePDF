@@ -2,7 +2,7 @@ import streamlit as st
 from pypdf import PdfWriter
 import io
 import base64
-from datetime import datetime # Importação nova para puxar a hora exata
+from datetime import datetime, timedelta # Importação do timedelta para corrigir o fuso horário
 
 # 1. Configuração da página
 st.set_page_config(
@@ -11,7 +11,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# 2. Injeção pesada de Design (CSS)
+# 2. Injeção de Design (CSS)
 def set_background(image_file):
     try:
         with open(image_file, "rb") as f:
@@ -20,7 +20,7 @@ def set_background(image_file):
         css = f"""
         <style>
         .stApp {{
-            background-image: url("data:image/jpg;base64,{encoded_string}");
+            background-image: url("data:image/png;base64,{encoded_string}");
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -75,15 +75,15 @@ def set_background(image_file):
         """
         st.markdown(css, unsafe_allow_html=True)
     except FileNotFoundError:
-        st.warning("⚠️ Imagem 'fundo.jpg' não encontrada. Coloque-a na mesma pasta do app.py.")
+        st.warning("⚠️ Imagem 'fundo.png' não encontrada. Coloque-a na mesma pasta do app.py.")
 
-set_background("fundo.jpg")
+set_background("fundo.png")
 
 # 3. Cabeçalho
 st.markdown("<h1>Agrupador Inteligente de PDFs 📄</h1>", unsafe_allow_html=True)
-st.write("Envie os arquivos completos. O sistema vai montar o PDF final na ordem: Pedido > Nota Fiscal > Boleto.")
+st.write("Envie os ficheiros completos. O sistema vai montar o PDF final na ordem: Pedido > Nota Fiscal > Boleto.")
 
-# NOVO: Bloco de Identificação (Motorista e Carga)
+# Bloco de Identificação (Motorista e Carga)
 with st.container(border=True):
     col_mot, col_carga = st.columns(2)
     with col_mot:
@@ -122,9 +122,9 @@ qtd_boletos = len(boletos) if boletos else 0
 total_categorias = (1 if qtd_pedidos > 0 else 0) + (1 if qtd_notas > 0 else 0) + (1 if qtd_boletos > 0 else 0)
 progresso = int((total_categorias / 3) * 100)
 
-ped_status = f"Recebido ({qtd_pedidos} arquivo(s))" if qtd_pedidos > 0 else "Aguardando..."
-nf_status = f"Recebido ({qtd_notas} arquivo(s))" if qtd_notas > 0 else "Aguardando..."
-bol_status = f"Recebido ({qtd_boletos} arquivo(s))" if qtd_boletos > 0 else "Aguardando..."
+ped_status = f"Recebido ({qtd_pedidos} ficheiro(s))" if qtd_pedidos > 0 else "Aguardando..."
+nf_status = f"Recebido ({qtd_notas} ficheiro(s))" if qtd_notas > 0 else "Aguardando..."
+bol_status = f"Recebido ({qtd_boletos} ficheiro(s))" if qtd_boletos > 0 else "Aguardando..."
 
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -154,12 +154,19 @@ with st.container(border=True):
         </ul>
         """, unsafe_allow_html=True)
 
-# 6. Botão Final de Processamento e Download
-if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True):
+# 6. TRAVA DE SEGURANÇA E BOTÃO DE PROCESSAMENTO
+# Verifica se os campos estão vazios
+faltam_dados = motorista.strip() == "" or carga.strip() == ""
+
+if faltam_dados:
+    st.warning("⚠️ Atenção: Preencha o **Nome do Motorista** e o **Nº da Carga** para liberar o botão de processamento.")
+
+# O parâmetro 'disabled' desativa o botão se faltarem os dados
+if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True, disabled=faltam_dados):
     if pedidos or notas or boletos:
         merger = PdfWriter()
         try:
-            # LÓGICA CORRIGIDA: Intercalando um a um (Pedido -> Nota -> Boleto)
+            # Intercalando um a um (Pedido -> Nota -> Boleto)
             max_arquivos = max(qtd_pedidos, qtd_notas, qtd_boletos)
             
             for i in range(max_arquivos):
@@ -173,17 +180,20 @@ if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True):
             output.seek(0)
             
             st.balloons()
-            st.success("PDFs agrupados com sucesso! Clique no botão abaixo para baixar.")
+            st.success("PDFs agrupados com sucesso! Clique no botão abaixo para descarregar o ficheiro.")
             
-            # NOVO: Gerando o nome do arquivo dinâmico
-            agora = datetime.now().strftime("%d-%m-%Y-%H:%M") # Formata a data e hora
-            nome_mot = motorista.strip().upper() if motorista else "MOTORISTA_NAO_INFORMADO"
-            num_carga = carga.strip() if carga else "SEM_CARGA"
+            # CORREÇÃO DO FUSO HORÁRIO (UTC-3)
+            # Retiramos 3 horas do relógio do servidor (UTC) para bater com a hora correta
+            hora_correta = datetime.utcnow() - timedelta(hours=3)
+            agora = hora_correta.strftime("%d-%m-%Y-%H:%M") 
+            
+            nome_mot = motorista.strip().upper()
+            num_carga = carga.strip()
             
             nome_final_pdf = f"{nome_mot} ({num_carga}) - {agora}.pdf"
             
             st.download_button(
-                label=f"📥 BAIXAR {nome_final_pdf}",
+                label=f"📥 DESCARREGAR {nome_final_pdf}",
                 data=output,
                 file_name=nome_final_pdf,
                 mime="application/pdf",
@@ -192,4 +202,4 @@ if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True):
         except Exception as e:
             st.error(f"Erro ao processar: {e}")
     else:
-        st.error("Por favor, faça o upload de pelo menos um arquivo antes de processar.")
+        st.error("Por favor, faça o upload de pelo menos um ficheiro antes de processar.")
