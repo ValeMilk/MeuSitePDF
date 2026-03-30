@@ -8,7 +8,22 @@ from datetime import datetime, timedelta
 # 1. Configuração da página
 st.set_page_config(page_title="Agrupador Inteligente de PDFs", page_icon="logo.png", layout="wide")
 
-# 2. Design e CSS (Com correções de contraste e feedback)
+# 2. Lógica de Status e Travas (Definida antes para usar no CSS)
+motorista = st.session_state.get("mot", "")
+carga = st.session_state.get("car", "")
+qtd_ped = len(st.session_state.get("up_ped", []) or [])
+qtd_nf = len(st.session_state.get("up_nf", []) or [])
+qtd_bol = len(st.session_state.get("up_bol", []) or [])
+
+total_arquivos = qtd_ped + qtd_nf + qtd_bol
+dados_ok = motorista.strip() != "" and carga.strip() != ""
+bloqueado = not (dados_ok and total_arquivos >= 2)
+
+# Cor do botão baseada no status
+cor_botao = "#16A34A" if not bloqueado else "#94A34A" # Verde se OK, Cinza se bloqueado
+opacidade = "1.0" if not bloqueado else "0.5"
+
+# 3. Design e CSS
 def set_background(image_file):
     try:
         with open(image_file, "rb") as f:
@@ -23,53 +38,26 @@ def set_background(image_file):
         
         .status-header {{ background-color: #1E40AF !important; color: #FFFFFF !important; padding: 10px; text-align: center; font-weight: bold; border-radius: 8px; margin-bottom: 15px; }}
         
-        .texto-status {{ 
-            color: #ffffff !important; 
-            font-weight: 800 !important; 
-            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000 !important;
-        }}
+        .texto-status {{ color: #ffffff !important; font-weight: 800 !important; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000 !important; }}
         
-        .alerta-caixa {{
-            background-color: rgba(0, 0, 0, 0.7) !important;
-            padding: 8px 12px !important;
-            border-radius: 5px !important;
-            display: inline-block !important;
-            margin-top: 5px !important;
-        }}
+        /* CORREÇÃO DO SPINNER: Fonte Escura */
+        div[data-testid="stSpinner"] p {{ color: #000000 !important; font-weight: bold !important; font-size: 16px !important; }}
         
-        /* CORREÇÃO DO SPINNER: Força a fonte do st.spinner a ficar escura */
-        div[data-testid="stSpinner"] p {{
-            color: #444444 !important; /* Cinza Escuro para contraste no fundo claro */
+        /* CORREÇÃO DO BOTÃO: Força a cor Verde quando desbloqueado */
+        div.stButton > button {{
+            background-color: {cor_botao} !important;
+            color: white !important;
             font-weight: bold !important;
-            font-size: 16px !important;
-        }}
-        
-        /* BOTÃO PRINCIPAL (Estilo Padrão - Desativado/Cinza) */
-        .stButton > button {{ 
-            background-color: #94A3B8 !important; /* Cinza suave quando travado */
-            color: white !important; 
-            font-weight: bold !important; 
-            border-radius: 8px !important; 
-            height: 50px !important; 
-            width: 100% !important; 
-            font-size: 18px !important; 
-            border: none !important;
-            opacity: 0.7; /* Mais opaco quando desativado */
+            border-radius: 8px !important;
+            height: 50px !important;
+            width: 100% !important;
+            font-size: 18px !important;
+            opacity: {opacidade} !important;
+            transition: 0.3s;
         }}
 
-        /* CLASSE DINÂMICA: Botão Verde quando tudo tiver OK */
-        .botao-ativado > button {{
-            background-color: #16A34A !important; /* Verde Vibrante */
-            opacity: 1 !important; /* Totalmente opaco */
-        }}
-        .botao-ativado > button:hover {{ background-color: #15803D !important; }}
-
-        /* Notificação de Sucesso (Fundo branco para ler o verde) */
         div[data-testid="stNotification"] {{ background-color: #FFFFFF !important; border: 2px solid #16A34A !important; border-radius: 8px !important; }}
         div[data-testid="stNotification"] p {{ color: #15803D !important; font-weight: 900 !important; }}
-
-        /* Botão de Download (Preto com destaque) */
-        a[data-testid="stDownloadButton"], div.stDownloadButton > button {{ background-color: #000000 !important; color: #FFFFFF !important; border-radius: 8px !important; padding: 10px !important; font-weight: bold !important; text-decoration: none !important; display: inline-block !important; width: 100% !important; }}
         </style>
         """
         st.markdown(css, unsafe_allow_html=True)
@@ -78,9 +66,8 @@ def set_background(image_file):
 set_background("fundo.png")
 
 st.markdown("<h1>Agrupador Inteligente de PDFs 📄</h1>", unsafe_allow_html=True)
-st.markdown("<p class='subtitulo'>O sistema só libera o processamento com motorista, carga e pelo menos 2 arquivos anexados.</p>", unsafe_allow_html=True)
 
-# 3. Identificação
+# 4. Identificação
 with st.container(border=True):
     col_mot, col_carga = st.columns(2)
     with col_mot:
@@ -90,9 +77,8 @@ with st.container(border=True):
         st.markdown("<h3 style='color:white; text-shadow: 2px 2px 2px black;'>📦 Nº da Carga:</h3>", unsafe_allow_html=True)
         carga = st.text_input("Carga", key="car", label_visibility="collapsed")
 
+# 5. Uploads
 st.markdown("<br>", unsafe_allow_html=True)
-
-# 4. Uploads
 col1, col2, col3 = st.columns(3)
 with col1:
     with st.container(border=True):
@@ -107,17 +93,9 @@ with col3:
         st.markdown("<h3 style='color:white;'>3. Boletos</h3>", unsafe_allow_html=True)
         arq_bol = st.file_uploader("B", type="pdf", accept_multiple_files=True, key="up_bol", label_visibility="collapsed")
 
-# 5. Status e Travas
-qtd_ped, qtd_nf, qtd_bol = len(arq_ped or []), len(arq_nf or []), len(arq_bol or [])
-total_arquivos = qtd_ped + qtd_nf + qtd_bol
+# 6. Status
 categorias = (1 if qtd_ped > 0 else 0) + (1 if qtd_nf > 0 else 0) + (1 if qtd_bol > 0 else 0)
 progresso = int((categorias / 3) * 100)
-
-dados_ok = motorista.strip() != "" and carga.strip() != ""
-bloqueado = not (dados_ok and total_arquivos >= 2)
-
-# Lógica para aplicar a classe 'botao-ativado'
-classe_botao = "botao-ativado" if not bloqueado else ""
 
 st.markdown("<br>", unsafe_allow_html=True)
 with st.container(border=True):
@@ -126,25 +104,20 @@ with st.container(border=True):
     with sc1:
         st.progress(progresso)
         st.markdown(f"<div class='texto-status' style='font-size: 24px;'>{progresso}%</div>", unsafe_allow_html=True)
-        
         if total_arquivos < 2:
-            st.markdown("<div class='alerta-caixa'><span class='texto-status'>⚠️ Anexe pelo menos 2 arquivos para realizar o agrupamento.</span></div>", unsafe_allow_html=True)
+            st.markdown("<div style='background:rgba(0,0,0,0.7); padding:5px; border-radius:5px; color:yellow;'>⚠️ Anexe pelo menos 2 arquivos.</div>", unsafe_allow_html=True)
         elif not dados_ok:
-            st.markdown("<div class='alerta-caixa'><span class='texto-status'>⚠️ Preencha Nome e Carga para liberar o botão.</span></div>", unsafe_allow_html=True)
+            st.markdown("<div style='background:rgba(0,0,0,0.7); padding:5px; border-radius:5px; color:yellow;'>⚠️ Preencha Nome e Carga.</div>", unsafe_allow_html=True)
         else:
-            st.markdown("<div class='alerta-caixa'><span class='texto-status' style='color:#00FF00 !important;'>✅ Tudo pronto! Pode processar.</span></div>", unsafe_allow_html=True)
-            
+            st.markdown("<div style='background:rgba(0,0,0,0.7); padding:5px; border-radius:5px; color:#00FF00;'>✅ Tudo pronto! Pode processar.</div>", unsafe_allow_html=True)
     with sc2:
-        st.markdown(f"<div class='texto-status' style='font-size: 14px;'>▪️ Pedidos: {qtd_ped}<br>▪️ Notas: {qtd_nf}<br>▪️ Boletos: {qtd_bol}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='texto-status'>▪️ P: {qtd_ped} | ▪️ N: {qtd_nf} | ▪️ B: {qtd_bol}</div>", unsafe_allow_html=True)
 
-# 6. Botão de Processamento com feedback visual dinâmico
+# 7. Botão e Processamento
 st.markdown("<br>", unsafe_allow_html=True)
 
-# Envolvemos o botão em uma div com a classe dinâmica
-st.markdown(f'<div class="{classe_botao}">', unsafe_allow_html=True)
 if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True, disabled=bloqueado):
-    # O spinner agora aparecerá com fonte escura (Cinza Escuro)
-    with st.spinner("📦 Processando e organizando arquivos... Por favor, aguarde."):
+    with st.spinner("📦 Organizando arquivos..."):
         agrupamentos = {}
         def extrair(arquivos, tipo):
             if not arquivos: return
@@ -190,9 +163,9 @@ if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True, disabled=bloqu
         final_merger.write(output)
         final_merger.close()
         output.seek(0)
+        
         st.balloons()
         st.success("✅ ARQUIVOS PROCESSADOS COM SUCESSO!")
         agora = (datetime.utcnow() - timedelta(hours=3)).strftime("%d-%m-%Y-%Hh%M")
         nome_f = f"{motorista.upper()} ({carga}) - {agora}.pdf"
-        st.download_button(label=f"📥 CLIQUE PARA BAIXAR: {nome_f}", data=output, file_name=nome_f, mime="application/pdf", use_container_width=True)
-st.markdown('</div>', unsafe_allow_html=True)
+        st.download_button(label=f"📥 BAIXAR: {nome_f}", data=output, file_name=nome_f, mime="application/pdf", use_container_width=True)
