@@ -2,11 +2,14 @@ import streamlit as st
 from pypdf import PdfWriter
 import io
 
-# Configuração da página (Ajustado para ser compatível)
+# Configuração da página (Isso muda o ícone da aba lá em cima)
 st.set_page_config(
     page_title="Agrupador de PDFs",
-    page_icon="🥛" # Usei o emoji de leite para garantir que apareça algo da ValeMilk na aba
+    page_icon="logo.png"
 )
+
+# Se quiser a logo DENTRO do site também, remova o '#' da linha abaixo:
+# st.image("logo.png", width=200)
 
 st.title("Agrupador de PDFs")
 
