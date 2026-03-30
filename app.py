@@ -2,56 +2,30 @@ import streamlit as st
 from pypdf import PdfWriter
 import io
 
-# 1. CONFIGURAÇÃO DA PÁGINA (Isso muda a logo na aba e o nome)
+# Configuração da página (Ajustado para ser compatível)
 st.set_page_config(
-    page_title="Agrupador de PDFs - ValeMilk",
-    page_icon="logo.png",  # Substitua pelo nome do seu arquivo de imagem
-    layout="centered"
+    page_title="Agrupador de PDFs",
+    page_icon="🥛" # Usei o emoji de leite para garantir que apareça algo da ValeMilk na aba
 )
 
-# Estilização básica para o título
-st.title("📂 Agrupador de PDFs ValeMilk")
-st.markdown("Selecione os arquivos abaixo para unir em um único PDF.")
+st.title("Agrupador de PDFs")
 
-# 2. COMPONENTE DE UPLOAD
-uploaded_files = st.file_uploader(
-    "Arraste os arquivos aqui", 
-    type="pdf", 
-    accept_multiple_files=True
-)
+uploaded_files = st.file_uploader("Escolha os arquivos PDF", type="pdf", accept_multiple_files=True)
 
 if uploaded_files:
-    st.success(f"{len(uploaded_files)} arquivos selecionados.")
-    
-    # Botão para processar
-    if st.button("Gerar PDF Único"):
+    if st.button("Agrupar PDFs"):
         merger = PdfWriter()
+        for pdf in uploaded_files:
+            merger.append(pdf)
         
-        try:
-            for pdf in uploaded_files:
-                merger.append(pdf)
-            
-            # Criar o arquivo final em memória
-            output_pdf = io.BytesIO()
-            merger.write(output_pdf)
-            merger.close()
-            output_pdf.seek(0)
-            
-            st.divider()
-            st.balloons()
-            
-            # 3. BOTÃO DE DOWNLOAD
-            st.download_button(
-                label="📥 Baixar PDF Agrupado",
-                data=output_pdf,
-                file_name="PDF_Agrupado_ValeMilk.pdf",
-                mime="application/pdf"
-            )
-            
-        except Exception as e:
-            st.error(f"Erro ao processar os arquivos: {e}")
-else:
-    st.info("Aguardando upload de arquivos...")
-
-# Rodapé simples
-st.caption("Desenvolvido para uso interno - ValeMilk 2026")
+        output = io.BytesIO()
+        merger.write(output)
+        merger.close()
+        output.seek(0)
+        
+        st.download_button(
+            label="Baixar PDF Agrupado",
+            data=output,
+            file_name="pdf_agrupado.pdf",
+            mime="application/pdf"
+        )
