@@ -2,7 +2,7 @@ import streamlit as st
 from pypdf import PdfWriter
 import io
 import base64
-from datetime import datetime, timedelta # Importação do timedelta para corrigir o fuso horário
+from datetime import datetime, timedelta
 
 # 1. Configuração da página
 st.set_page_config(
@@ -11,7 +11,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# 2. Injeção de Design (CSS)
+# 2. Injeção de Design (CSS) - Efeito Dark Glass Premium
 def set_background(image_file):
     try:
         with open(image_file, "rb") as f:
@@ -19,6 +19,7 @@ def set_background(image_file):
         
         css = f"""
         <style>
+        /* Fundo principal com a sua imagem */
         .stApp {{
             background-image: url("data:image/png;base64,{encoded_string}");
             background-size: cover;
@@ -27,50 +28,94 @@ def set_background(image_file):
         }}
         
         .stApp > header {{ background-color: transparent; }}
-        h1, p {{ color: white; }}
-
-        /* Estilo dos Cards Bege */
-        div[data-testid="stVerticalBlockBorderWrapper"] {{
-            background-color: #F4F2E9 !important;
-            border-radius: 12px !important;
-            border: 2px solid #D5DBE1 !important;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            padding: 10px;
+        
+        /* Títulos principais com sombra para destacar do fundo */
+        h1, h2, h3 {{
+            color: #ffffff !important;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
         }}
 
+        /* Caixas principais (Cards) - Efeito Vidro Escuro */
+        div[data-testid="stVerticalBlockBorderWrapper"] {{
+            background-color: rgba(15, 23, 42, 0.90) !important; /* Fundo azul marinho escuro quase sólido */
+            border-radius: 12px !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+            padding: 15px;
+        }}
+
+        /* Textos dentro dos cards (Branco gelo para leitura perfeita) */
         div[data-testid="stVerticalBlockBorderWrapper"] p, 
-        div[data-testid="stVerticalBlockBorderWrapper"] h3, 
-        div[data-testid="stVerticalBlockBorderWrapper"] h1,
         div[data-testid="stVerticalBlockBorderWrapper"] span,
         div[data-testid="stVerticalBlockBorderWrapper"] li,
         div[data-testid="stVerticalBlockBorderWrapper"] label {{
-            color: #1B222C !important;
+            color: #E2E8F0 !important; 
         }}
 
-        /* O botão "Browse files" em azul escuro */
-        div[data-testid="stFileUploader"] button {{
-            background-color: #143A66 !important;
+        /* Caixas de digitação (Inputs) */
+        div[data-testid="stTextInput"] input {{
+            background-color: rgba(0, 0, 0, 0.4) !important;
             color: white !important;
-            border: none !important;
-            border-radius: 6px !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
         }}
-        div[data-testid="stFileUploader"] button:hover {{ background-color: #0d2745 !important; }}
-        div[data-testid="stFileUploader"] {{ background-color: transparent !important; }}
 
-        /* Botão gigante de Processar em Preto/Cinza Escuro */
-        .stButton > button {{
-            background-color: #2D3139 !important;
+        /* Área de Upload (Tracejado) */
+        div[data-testid="stFileUploader"] {{
+            background-color: rgba(30, 41, 59, 0.5) !important;
+            border: 1px dashed #475569 !important;
+            border-radius: 8px;
+        }}
+
+        /* O botão "Browse files" em azul vibrante */
+        div[data-testid="stFileUploader"] button {{
+            background-color: #2563EB !important;
             color: white !important;
             border: none !important;
             border-radius: 6px !important;
             font-weight: bold;
-            padding: 10px !important;
-            margin-top: 15px;
         }}
-        .stButton > button:hover {{ background-color: #1a1c21 !important; }}
+        div[data-testid="stFileUploader"] button:hover {{ background-color: #1D4ED8 !important; }}
+
+        /* Barra Azul do Título "Processing Status" */
+        .status-header {{
+            background-color: #1E40AF; 
+            color: white; 
+            padding: 10px; 
+            text-align: center; 
+            font-weight: bold; 
+            border-radius: 8px; 
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }}
+
+        /* Botão gigante de Processar */
+        .stButton > button {{
+            background-color: #16A34A !important; /* Verde Elegante */
+            color: white !important;
+            border: none !important;
+            border-radius: 8px !important;
+            font-weight: bold;
+            padding: 12px !important;
+            font-size: 16px !important;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }}
+        .stButton > button:hover {{ background-color: #15803D !important; }}
         
-        /* Cor da Barra de Progresso */
-        .stProgress > div > div > div {{ background-color: #143A66 !important; }}
+        /* Botão bloqueado (Cinza) */
+        .stButton > button:disabled {{
+            background-color: #334155 !important;
+            color: #94A3B8 !important;
+        }}
+        
+        /* CORREÇÃO DO AVISO AMARELO NO FUNDO DA TELA */
+        div[data-testid="stAlert"] {{
+            border-radius: 8px !important;
+            border: none !important;
+        }}
+        div[data-testid="stAlert"] p, div[data-testid="stAlert"] span {{
+            color: #0F172A !important; /* Força o texto do aviso a ser escuro para dar contraste */
+            font-weight: bold;
+        }}
         </style>
         """
         st.markdown(css, unsafe_allow_html=True)
@@ -81,7 +126,7 @@ set_background("fundo.png")
 
 # 3. Cabeçalho
 st.markdown("<h1>Agrupador Inteligente de PDFs 📄</h1>", unsafe_allow_html=True)
-st.write("Envie os ficheiros completos. O sistema vai montar o PDF final na ordem: Pedido > Nota Fiscal > Boleto.")
+st.markdown("<p style='text-shadow: 1px 1px 3px rgba(0,0,0,0.8);'>Envie os ficheiros completos. O sistema vai montar o PDF final na ordem: Pedido > Nota Fiscal > Boleto.</p>", unsafe_allow_html=True)
 
 # Bloco de Identificação (Motorista e Carga)
 with st.container(border=True):
@@ -129,11 +174,7 @@ bol_status = f"Recebido ({qtd_boletos} ficheiro(s))" if qtd_boletos > 0 else "Ag
 st.markdown("<br>", unsafe_allow_html=True)
 
 with st.container(border=True):
-    st.markdown("""
-        <div style="background-color: #143A66; color: white !important; padding: 10px; text-align: center; font-weight: bold; border-radius: 8px 8px 0 0; margin: -10px -10px 15px -10px;">
-            Processing Status
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown('<div class="status-header">Processing Status</div>', unsafe_allow_html=True)
     
     stat_col1, stat_col2 = st.columns([2, 1])
     
@@ -155,18 +196,15 @@ with st.container(border=True):
         """, unsafe_allow_html=True)
 
 # 6. TRAVA DE SEGURANÇA E BOTÃO DE PROCESSAMENTO
-# Verifica se os campos estão vazios
 faltam_dados = motorista.strip() == "" or carga.strip() == ""
 
 if faltam_dados:
-    st.warning("⚠️ Atenção: Preencha o **Nome do Motorista** e o **Nº da Carga** para liberar o botão de processamento.")
+    st.warning("⚠️ Atenção: Preencha o Nome do Motorista e o Nº da Carga para liberar o botão de processamento.")
 
-# O parâmetro 'disabled' desativa o botão se faltarem os dados
 if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True, disabled=faltam_dados):
     if pedidos or notas or boletos:
         merger = PdfWriter()
         try:
-            # Intercalando um a um (Pedido -> Nota -> Boleto)
             max_arquivos = max(qtd_pedidos, qtd_notas, qtd_boletos)
             
             for i in range(max_arquivos):
@@ -182,24 +220,10 @@ if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True, disabled=falta
             st.balloons()
             st.success("PDFs agrupados com sucesso! Clique no botão abaixo para descarregar o ficheiro.")
             
-            # CORREÇÃO DO FUSO HORÁRIO (UTC-3)
-            # Retiramos 3 horas do relógio do servidor (UTC) para bater com a hora correta
             hora_correta = datetime.utcnow() - timedelta(hours=3)
             agora = hora_correta.strftime("%d-%m-%Y-%H:%M") 
             
             nome_mot = motorista.strip().upper()
             num_carga = carga.strip()
             
-            nome_final_pdf = f"{nome_mot} ({num_carga}) - {agora}.pdf"
-            
-            st.download_button(
-                label=f"📥 DESCARREGAR {nome_final_pdf}",
-                data=output,
-                file_name=nome_final_pdf,
-                mime="application/pdf",
-                use_container_width=True
-            )
-        except Exception as e:
-            st.error(f"Erro ao processar: {e}")
-    else:
-        st.error("Por favor, faça o upload de pelo menos um ficheiro antes de processar.")
+            nome_final_pdf = f"{nome_mot} ({num_carga}) - {agora}.
