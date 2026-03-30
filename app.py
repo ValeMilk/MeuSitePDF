@@ -226,4 +226,16 @@ if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True, disabled=falta
             nome_mot = motorista.strip().upper()
             num_carga = carga.strip()
             
-            nome_final_pdf = f"{nome_mot} ({num_carga}) - {agora}.
+            nome_final_pdf = f"{nome_mot} ({num_carga}) - {agora}.pdf"
+            
+            st.download_button(
+                label=f"📥 DESCARREGAR {nome_final_pdf}",
+                data=output,
+                file_name=nome_final_pdf,
+                mime="application/pdf",
+                use_container_width=True
+            )
+        except Exception as e:
+            st.error(f"Erro ao processar: {e}")
+    else:
+        st.error("Por favor, faça o upload de pelo menos um ficheiro antes de processar.")
