@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 # 1. Configuração da página
 st.set_page_config(page_title="Agrupador Inteligente de PDFs", page_icon="logo.png", layout="wide")
 
-# 2. Design (CSS Corrigido para Contraste)
+# 2. Design e CSS
 def set_background(image_file):
     try:
         with open(image_file, "rb") as f:
@@ -18,16 +18,15 @@ def set_background(image_file):
         .stApp {{ background-image: url("data:image/png;base64,{encoded_string}"); background-size: cover; background-position: center; background-attachment: fixed; }}
         h1, .subtitulo {{ color: #ffffff !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.9); }}
         
-        /* Caixas de Upload */
+        /* Caixas de Identificação e Upload */
         div[data-testid="stVerticalBlockBorderWrapper"] {{ background-color: rgba(248, 250, 252, 0.15) !important; border-radius: 12px !important; border: 1px solid rgba(203, 213, 225, 0.3) !important; backdrop-filter: blur(10px); padding: 15px; }}
         div[data-testid="stTextInput"] input {{ background-color: #FFFFFF !important; color: #0F172A !important; font-weight: bold !important; height: 45px; }}
         
         .status-header {{ background-color: #1E40AF !important; color: #FFFFFF !important; padding: 10px; text-align: center; font-weight: bold; border-radius: 8px; margin-bottom: 15px; }}
         .texto-branco {{ color: #ffffff !important; font-weight: 700; text-shadow: 1px 1px 2px black; }}
         
-        /* BOTÃO PROCESSAR */
+        /* BOTÃO PROCESSAR (Verde quando ativo, Cinza quando travado) */
         .stButton > button {{
-            background-color: #16A34A !important;
             color: white !important;
             font-weight: bold !important;
             border-radius: 8px !important;
@@ -36,29 +35,25 @@ def set_background(image_file):
             font-size: 18px !important;
         }}
 
-        /* CORREÇÃO DO SUCESSO (Verde no Verde nunca mais) */
+        /* CORREÇÃO DO SUCESSO (Fundo branco, texto verde escuro) */
         div[data-testid="stNotification"] {{
             background-color: #FFFFFF !important; 
             color: #15803D !important;
             border: 2px solid #16A34A !important;
             border-radius: 8px !important;
         }}
-        div[data-testid="stNotification"] p {{
-            color: #15803D !important;
-            font-weight: 900 !important;
-            font-size: 18px !important;
-        }}
+        div[data-testid="stNotification"] p {{ color: #15803D !important; font-weight: 900 !important; font-size: 18px !important; }}
 
-        /* BOTÃO DE DOWNLOAD (Preto para destacar no fundo azul) */
-        a[data-testid="stDownloadButton"] {{
+        /* BOTÃO DE DOWNLOAD (Preto com destaque) */
+        a[data-testid="stDownloadButton"], div.stDownloadButton > button {{
             background-color: #000000 !important;
             color: #FFFFFF !important;
             border-radius: 8px !important;
-            padding: 15px !important;
-            text-decoration: none !important;
-            display: block !important;
-            text-align: center !important;
+            padding: 10px !important;
             font-weight: bold !important;
+            text-decoration: none !important;
+            display: inline-block !important;
+            width: 100% !important;
         }}
         </style>
         """
@@ -68,7 +63,7 @@ def set_background(image_file):
 set_background("fundo.png")
 
 st.markdown("<h1>Agrupador Inteligente de PDFs 📄</h1>", unsafe_allow_html=True)
-st.markdown("<p class='subtitulo'>Envie os ficheiros completos. O sistema vai montar o PDF final na ordem: Pedido > Nota Fiscal > Boleto.</p>", unsafe_allow_html=True)
+st.markdown("<p class='subtitulo'>O sistema só libera o processamento com motorista, carga e arquivos anexados.</p>", unsafe_allow_html=True)
 
 # 3. Identificação
 with st.container(border=True):
@@ -97,10 +92,15 @@ with col3:
         st.markdown("<h3 style='color:white;'>3. Boletos</h3>", unsafe_allow_html=True)
         arq_bol = st.file_uploader("B", type="pdf", accept_multiple_files=True, key="up_bol", label_visibility="collapsed")
 
-# 5. Barra de Status
+# 5. Lógica de Status e Travas
 qtd_ped, qtd_nf, qtd_bol = len(arq_ped or []), len(arq_nf or []), len(arq_bol or [])
+total_arquivos = qtd_ped + qtd_nf + qtd_bol
 categorias = (1 if qtd_ped > 0 else 0) + (1 if qtd_nf > 0 else 0) + (1 if qtd_bol > 0 else 0)
 progresso = int((categorias / 3) * 100)
+
+# CONDIÇÃO DE TRAVA: Nome + Carga + Pelo menos 1 arquivo
+dados_preenchidos = motorista.strip() != "" and carga.strip() != ""
+botao_bloqueado = not (dados_preenchidos and total_arquivos > 0)
 
 st.markdown("<br>", unsafe_allow_html=True)
 with st.container(border=True):
@@ -109,16 +109,20 @@ with st.container(border=True):
     with sc1:
         st.progress(progresso)
         st.markdown(f"<div class='texto-branco' style='font-size: 24px;'>{progresso}%</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='texto-branco'>{'✅ Pronto!' if progresso == 100 else '⏳ Aguardando...'}</div>", unsafe_allow_html=True)
+        if total_arquivos == 0:
+            st.markdown("<div style='color: #FFD700; font-weight: bold;'>⚠️ Anexe os arquivos para começar.</div>", unsafe_allow_html=True)
+        elif not dados_preenchidos:
+            st.markdown("<div style='color: #FFD700; font-weight: bold;'>⚠️ Preencha Motorista e Carga.</div>", unsafe_allow_html=True)
+        else:
+            st.markdown("<div style='color: #00FF00; font-weight: bold;'>✅ Tudo pronto para processar!</div>", unsafe_allow_html=True)
     with sc2:
         st.markdown(f"<div class='texto-branco' style='font-size: 13px;'>▪️ Pedidos: {qtd_ped}<br>▪️ Notas: {qtd_nf}<br>▪️ Boletos: {qtd_bol}</div>", unsafe_allow_html=True)
 
-# 6. Processamento
+# 6. Botão com lógica de trava estrita
 st.markdown("<br>", unsafe_allow_html=True)
-botao_bloqueado = not motorista.strip() or not carga.strip()
 
 if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True, disabled=botao_bloqueado):
-    with st.spinner("📦 Organizando..."):
+    with st.spinner("📦 Organizando arquivos..."):
         agrupamentos = {}
         
         def extrair(arquivos, tipo):
