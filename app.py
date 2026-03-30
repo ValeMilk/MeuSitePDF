@@ -19,7 +19,6 @@ def set_background(image_file):
         
         css = f"""
         <style>
-        /* Fundo principal com a sua imagem */
         .stApp {{
             background-image: url("data:image/png;base64,{encoded_string}");
             background-size: cover;
@@ -29,13 +28,11 @@ def set_background(image_file):
         
         .stApp > header {{ background-color: transparent; }}
         
-        /* Títulos principais (Brancos com sombra escura para leitura no fundo) */
         h1, h2, .subtitulo {{
             color: #ffffff !important;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
         }}
 
-        /* Caixas principais (Cards) - Vidro Branco Fosco (Para a fonte não sumir!) */
         div[data-testid="stVerticalBlockBorderWrapper"] {{
             background-color: rgba(255, 255, 255, 0.90) !important; 
             border-radius: 12px !important;
@@ -44,7 +41,6 @@ def set_background(image_file):
             padding: 15px;
         }}
 
-        /* FORÇANDO Textos DENTRO dos cards a serem ESCUROS */
         div[data-testid="stVerticalBlockBorderWrapper"] p, 
         div[data-testid="stVerticalBlockBorderWrapper"] span,
         div[data-testid="stVerticalBlockBorderWrapper"] li,
@@ -54,7 +50,6 @@ def set_background(image_file):
             font-weight: 600 !important;
         }}
 
-        /* Caixas de digitação */
         div[data-testid="stTextInput"] input {{
             background-color: #FFFFFF !important;
             color: #0F172A !important;
@@ -62,14 +57,12 @@ def set_background(image_file):
             border-radius: 6px !important;
         }}
 
-        /* Área de Upload (Tracejado) */
         div[data-testid="stFileUploader"] {{
             background-color: rgba(241, 245, 249, 0.6) !important;
             border: 1px dashed #64748B !important;
             border-radius: 8px;
         }}
 
-        /* Botão "Browse files" em azul */
         div[data-testid="stFileUploader"] button {{
             background-color: #2563EB !important;
             color: white !important;
@@ -79,7 +72,6 @@ def set_background(image_file):
         }}
         div[data-testid="stFileUploader"] button:hover {{ background-color: #1D4ED8 !important; }}
 
-        /* Barra Azul do Título "Processing Status" */
         .status-header {{
             background-color: #1E40AF; 
             color: white !important; 
@@ -91,9 +83,8 @@ def set_background(image_file):
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }}
 
-        /* Botão gigante de Processar */
         .stButton > button {{
-            background-color: #16A34A !important; /* Verde */
+            background-color: #16A34A !important;
             color: white !important;
             border: none !important;
             border-radius: 8px !important;
@@ -104,7 +95,6 @@ def set_background(image_file):
         }}
         .stButton > button:hover {{ background-color: #15803D !important; }}
         
-        /* Botão bloqueado (Cinza) */
         .stButton > button:disabled {{
             background-color: #94A3B8 !important;
             color: #F1F5F9 !important;
@@ -112,7 +102,6 @@ def set_background(image_file):
         
         .stProgress > div > div > div {{ background-color: #2563EB !important; }}
         
-        /* Textos dos alertas (Avisos Amarelos/Vermelhos) */
         div[data-testid="stAlert"] p, div[data-testid="stAlert"] span {{
             color: #0F172A !important;
             font-weight: bold;
@@ -165,7 +154,7 @@ qtd_pedidos = len(pedidos) if pedidos else 0
 qtd_notas = len(notas) if notas else 0
 qtd_boletos = len(boletos) if boletos else 0
 
-total_arquivos = qtd_pedidos + qtd_notas + qtd_boletos # Conta quantos arquivos existem no total
+total_arquivos = qtd_pedidos + qtd_notas + qtd_boletos
 
 total_categorias = (1 if qtd_pedidos > 0 else 0) + (1 if qtd_notas > 0 else 0) + (1 if qtd_boletos > 0 else 0)
 progresso = int((total_categorias / 3) * 100)
@@ -198,12 +187,10 @@ with st.container(border=True):
         </ul>
         """, unsafe_allow_html=True)
 
-
 # 6. TRAVA DE SEGURANÇA E BOTÃO DE PROCESSAMENTO
 faltam_dados = motorista.strip() == "" or carga.strip() == ""
-faltam_arquivos = total_arquivos < 2 # BLOQUEIO: Exige pelo menos 2 arquivos no total para liberar a junção
+faltam_arquivos = total_arquivos < 2
 
-# O botão fica bloqueado se faltarem textos ou se houver menos de 2 arquivos
 botao_bloqueado = faltam_dados or faltam_arquivos
 
 if faltam_dados:
@@ -215,12 +202,15 @@ if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True, disabled=botao
     if pedidos or notas or boletos:
         merger = PdfWriter()
         try:
-            max_arquivos = max(qtd_pedidos, qtd_notas, qtd_boletos)
+            # GARANTIA 1: Ordena os arquivos pelo nome original (evita bagunça no upload)
+            pedidos_ord = sorted(pedidos, key=lambda x: x.name) if pedidos else []
+            notas_ord = sorted(notas, key=lambda x: x.name) if notas else []
+            boletos_ord = sorted(boletos, key=lambda x: x.name) if boletos else []
             
-            for i in range(max_arquivos):
-                if i < qtd_pedidos: merger.append(pedidos[i])
-                if i < qtd_notas: merger.append(notas[i])
-                if i < qtd_boletos: merger.append(boletos[i])
+            # GARANTIA 2: Junta em blocos rígidos na ordem exata solicitada
+            for p in pedidos_ord: merger.append(p)
+            for n in notas_ord: merger.append(n)
+            for b in boletos_ord: merger.append(b)
                 
             output = io.BytesIO()
             merger.write(output)
