@@ -8,20 +8,24 @@ from datetime import datetime, timedelta
 # 1. Configuração da página
 st.set_page_config(page_title="Agrupador Inteligente de PDFs", page_icon="logo.png", layout="wide")
 
-# 2. Lógica de Status e Travas (Definida antes para usar no CSS)
-motorista = st.session_state.get("mot", "")
-carga = st.session_state.get("car", "")
-qtd_ped = len(st.session_state.get("up_ped", []) or [])
-qtd_nf = len(st.session_state.get("up_nf", []) or [])
-qtd_bol = len(st.session_state.get("up_bol", []) or [])
+# 2. Inicialização do Estado (Para evitar erros de leitura antes do upload)
+if "up_ped" not in st.session_state: st.session_state.up_ped = []
+if "up_nf" not in st.session_state: st.session_state.up_nf = []
+if "up_bol" not in st.session_state: st.session_state.up_bol = []
 
-total_arquivos = qtd_ped + qtd_nf + qtd_bol
-dados_ok = motorista.strip() != "" and carga.strip() != ""
-bloqueado = not (dados_ok and total_arquivos >= 2)
+# Captura de dados para o CSS dinâmico
+motorista_val = st.session_state.get("mot", "")
+carga_val = st.session_state.get("car", "")
+qtd_p = len(st.session_state.get("up_ped") or [])
+qtd_n = len(st.session_state.get("up_nf") or [])
+qtd_b = len(st.session_state.get("up_bol") or [])
 
-# Cor do botão baseada no status
-cor_botao = "#16A34A" if not bloqueado else "#94A34A" # Verde se OK, Cinza se bloqueado
-opacidade = "1.0" if not bloqueado else "0.5"
+total_docs = qtd_p + qtd_n + qtd_b
+pode_processar = (motorista_val.strip() != "" and carga_val.strip() != "" and total_docs >= 2)
+
+# Definição de cores do botão
+cor_btn = "#16A34A" if pode_processar else "#334155" # Verde vivo ou Cinza escuro
+opacidade_btn = "1.0" if pode_processar else "0.6"
 
 # 3. Design e CSS
 def set_background(image_file):
@@ -37,22 +41,22 @@ def set_background(image_file):
         div[data-testid="stTextInput"] input {{ background-color: #FFFFFF !important; color: #0F172A !important; font-weight: bold !important; height: 45px; }}
         
         .status-header {{ background-color: #1E40AF !important; color: #FFFFFF !important; padding: 10px; text-align: center; font-weight: bold; border-radius: 8px; margin-bottom: 15px; }}
-        
         .texto-status {{ color: #ffffff !important; font-weight: 800 !important; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000 !important; }}
         
-        /* CORREÇÃO DO SPINNER: Fonte Escura */
+        /* Spinner e Organizador com fonte preta */
         div[data-testid="stSpinner"] p {{ color: #000000 !important; font-weight: bold !important; font-size: 16px !important; }}
         
-        /* CORREÇÃO DO BOTÃO: Força a cor Verde quando desbloqueado */
+        /* BOTÃO DINÂMICO */
         div.stButton > button {{
-            background-color: {cor_botao} !important;
+            background-color: {cor_btn} !important;
             color: white !important;
             font-weight: bold !important;
             border-radius: 8px !important;
             height: 50px !important;
             width: 100% !important;
             font-size: 18px !important;
-            opacity: {opacidade} !important;
+            opacity: {opacidade_btn} !important;
+            border: none !important;
             transition: 0.3s;
         }}
 
@@ -93,9 +97,9 @@ with col3:
         st.markdown("<h3 style='color:white;'>3. Boletos</h3>", unsafe_allow_html=True)
         arq_bol = st.file_uploader("B", type="pdf", accept_multiple_files=True, key="up_bol", label_visibility="collapsed")
 
-# 6. Status
-categorias = (1 if qtd_ped > 0 else 0) + (1 if qtd_nf > 0 else 0) + (1 if qtd_bol > 0 else 0)
-progresso = int((categorias / 3) * 100)
+# 6. Status (RESTORED LIST FORMAT)
+cats_cheias = (1 if qtd_p > 0 else 0) + (1 if qtd_n > 0 else 0) + (1 if qtd_b > 0 else 0)
+progresso = int((cats_cheias / 3) * 100)
 
 st.markdown("<br>", unsafe_allow_html=True)
 with st.container(border=True):
@@ -104,14 +108,19 @@ with st.container(border=True):
     with sc1:
         st.progress(progresso)
         st.markdown(f"<div class='texto-status' style='font-size: 24px;'>{progresso}%</div>", unsafe_allow_html=True)
-        if total_arquivos < 2:
+        if total_docs < 2:
             st.markdown("<div style='background:rgba(0,0,0,0.7); padding:5px; border-radius:5px; color:yellow;'>⚠️ Anexe pelo menos 2 arquivos.</div>", unsafe_allow_html=True)
         elif not dados_ok:
-            st.markdown("<div style='background:rgba(0,0,0,0.7); padding:5px; border-radius:5px; color:yellow;'>⚠️ Preencha Nome e Carga.</div>", unsafe_allow_html=True)
+            st.markdown("<div style='background:rgba(0,0,0,0.7); padding:5px; border-radius:5px; color:yellow;'>⚠️ Preencha Motorista e Carga.</div>", unsafe_allow_html=True)
         else:
             st.markdown("<div style='background:rgba(0,0,0,0.7); padding:5px; border-radius:5px; color:#00FF00;'>✅ Tudo pronto! Pode processar.</div>", unsafe_allow_html=True)
     with sc2:
-        st.markdown(f"<div class='texto-status'>▪️ P: {qtd_ped} | ▪️ N: {qtd_nf} | ▪️ B: {qtd_bol}</div>", unsafe_allow_html=True)
+        # Voltou a ser lista um embaixo do outro conforme imagem original
+        st.markdown(f"""<div class='texto-status' style='font-size:14px; line-height:1.6;'>
+            ▪️ <b>Pedidos:</b> {qtd_p}<br>
+            ▪️ <b>Notas Fiscais:</b> {qtd_n}<br>
+            ▪️ <b>Boletos:</b> {qtd_b}
+        </div>""", unsafe_allow_html=True)
 
 # 7. Botão e Processamento
 st.markdown("<br>", unsafe_allow_html=True)
