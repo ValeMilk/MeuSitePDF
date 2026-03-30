@@ -8,26 +8,7 @@ from datetime import datetime, timedelta
 # 1. Configuração da página
 st.set_page_config(page_title="Agrupador Inteligente de PDFs", page_icon="logo.png", layout="wide")
 
-# 2. Inicialização do Estado (Para evitar erros de leitura antes do upload)
-if "up_ped" not in st.session_state: st.session_state.up_ped = []
-if "up_nf" not in st.session_state: st.session_state.up_nf = []
-if "up_bol" not in st.session_state: st.session_state.up_bol = []
-
-# Captura de dados para o CSS dinâmico
-motorista_val = st.session_state.get("mot", "")
-carga_val = st.session_state.get("car", "")
-qtd_p = len(st.session_state.get("up_ped") or [])
-qtd_n = len(st.session_state.get("up_nf") or [])
-qtd_b = len(st.session_state.get("up_bol") or [])
-
-total_docs = qtd_p + qtd_n + qtd_b
-pode_processar = (motorista_val.strip() != "" and carga_val.strip() != "" and total_docs >= 2)
-
-# Definição de cores do botão
-cor_btn = "#16A34A" if pode_processar else "#334155" # Verde vivo ou Cinza escuro
-opacidade_btn = "1.0" if pode_processar else "0.6"
-
-# 3. Design e CSS
+# 2. Design e CSS
 def set_background(image_file):
     try:
         with open(image_file, "rb") as f:
@@ -43,23 +24,10 @@ def set_background(image_file):
         .status-header {{ background-color: #1E40AF !important; color: #FFFFFF !important; padding: 10px; text-align: center; font-weight: bold; border-radius: 8px; margin-bottom: 15px; }}
         .texto-status {{ color: #ffffff !important; font-weight: 800 !important; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000 !important; }}
         
-        /* Spinner e Organizador com fonte preta */
+        /* Spinner com fonte preta */
         div[data-testid="stSpinner"] p {{ color: #000000 !important; font-weight: bold !important; font-size: 16px !important; }}
-        
-        /* BOTÃO DINÂMICO */
-        div.stButton > button {{
-            background-color: {cor_btn} !important;
-            color: white !important;
-            font-weight: bold !important;
-            border-radius: 8px !important;
-            height: 50px !important;
-            width: 100% !important;
-            font-size: 18px !important;
-            opacity: {opacidade_btn} !important;
-            border: none !important;
-            transition: 0.3s;
-        }}
 
+        /* Notificação de Sucesso */
         div[data-testid="stNotification"] {{ background-color: #FFFFFF !important; border: 2px solid #16A34A !important; border-radius: 8px !important; }}
         div[data-testid="stNotification"] p {{ color: #15803D !important; font-weight: 900 !important; }}
         </style>
@@ -71,7 +39,7 @@ set_background("fundo.png")
 
 st.markdown("<h1>Agrupador Inteligente de PDFs 📄</h1>", unsafe_allow_html=True)
 
-# 4. Identificação
+# 3. Identificação
 with st.container(border=True):
     col_mot, col_carga = st.columns(2)
     with col_mot:
@@ -81,7 +49,7 @@ with st.container(border=True):
         st.markdown("<h3 style='color:white; text-shadow: 2px 2px 2px black;'>📦 Nº da Carga:</h3>", unsafe_allow_html=True)
         carga = st.text_input("Carga", key="car", label_visibility="collapsed")
 
-# 5. Uploads
+# 4. Uploads
 st.markdown("<br>", unsafe_allow_html=True)
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -97,9 +65,20 @@ with col3:
         st.markdown("<h3 style='color:white;'>3. Boletos</h3>", unsafe_allow_html=True)
         arq_bol = st.file_uploader("B", type="pdf", accept_multiple_files=True, key="up_bol", label_visibility="collapsed")
 
-# 6. Status (RESTORED LIST FORMAT)
+# 5. Lógica de Status (Calculada APÓS os widgets)
+qtd_p = len(arq_ped) if arq_ped else 0
+qtd_n = len(arq_nf) if arq_nf else 0
+qtd_b = len(arq_bol) if arq_bol else 0
+total_docs = qtd_p + qtd_n + qtd_b
 cats_cheias = (1 if qtd_p > 0 else 0) + (1 if qtd_n > 0 else 0) + (1 if qtd_b > 0 else 0)
 progresso = int((cats_cheias / 3) * 100)
+
+dados_ok = motorista.strip() != "" and carga.strip() != ""
+bloqueado = not (dados_ok and total_docs >= 2)
+
+# CSS Dinâmico para o botão
+cor_btn = "#16A34A" if not bloqueado else "#334155"
+st.markdown(f"<style>div.stButton > button {{ background-color: {cor_btn} !important; color: white !important; font-weight: bold !important; border-radius: 8px !important; height: 50px !important; width: 100% !important; font-size: 18px !important; border: none !important; transition: 0.3s; }}</style>", unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 with st.container(border=True):
@@ -115,14 +94,13 @@ with st.container(border=True):
         else:
             st.markdown("<div style='background:rgba(0,0,0,0.7); padding:5px; border-radius:5px; color:#00FF00;'>✅ Tudo pronto! Pode processar.</div>", unsafe_allow_html=True)
     with sc2:
-        # Voltou a ser lista um embaixo do outro conforme imagem original
         st.markdown(f"""<div class='texto-status' style='font-size:14px; line-height:1.6;'>
             ▪️ <b>Pedidos:</b> {qtd_p}<br>
             ▪️ <b>Notas Fiscais:</b> {qtd_n}<br>
             ▪️ <b>Boletos:</b> {qtd_b}
         </div>""", unsafe_allow_html=True)
 
-# 7. Botão e Processamento
+# 6. Botão e Processamento
 st.markdown("<br>", unsafe_allow_html=True)
 
 if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True, disabled=bloqueado):
