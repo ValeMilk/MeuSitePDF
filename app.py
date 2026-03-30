@@ -110,7 +110,7 @@ set_background("fundo.png")
 
 # 3. Cabeçalho Principal
 st.markdown("<h1>Agrupador Inteligente de PDFs 📄</h1>", unsafe_allow_html=True)
-st.markdown("<p class='subtitulo'>Envie os ficheiros completos. O sistema vai montar o PDF final na ordem por kits: Pedido 1 > Nota 1 > Boleto 1.</p>", unsafe_allow_html=True)
+st.markdown("<p class='subtitulo'>Envie os ficheiros completos. O sistema vai montar o PDF final na ordem: TODOS os Pedidos > TODAS as Notas > TODOS os Boletos.</p>", unsafe_allow_html=True)
 
 # 4. Bloco de Identificação
 with st.container(border=True):
@@ -206,27 +206,25 @@ if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True, disabled=botao
     if pedidos or notas or boletos:
         merger = PdfWriter()
         try:
-            # Ordena os arquivos pelo nome (Para P1 casar com N1 e B1)
-            pedidos_ord = sorted(pedidos, key=lambda x: x.name) if pedidos else []
-            notas_ord = sorted(notas, key=lambda x: x.name) if notas else []
-            boletos_ord = sorted(boletos, key=lambda x: x.name) if boletos else []
+            # LÓGICA DE JUNÇÃO ESTRITA: PEDIDO > NOTA > BOLETO
             
-            # Conta o máximo de arquivos numa coluna para fazer o laço correto
-            max_arquivos = max(len(pedidos_ord), len(notas_ord), len(boletos_ord))
-            
-            # LÓGICA DE KITS INTERCALADOS COM "REBOBINADOR" (.seek(0))
-            for i in range(max_arquivos):
-                if i < len(pedidos_ord):
-                    pedidos_ord[i].seek(0) # Rebobina o PDF para garantir que não será pulado
-                    merger.append(pedidos_ord[i])
+            # 1. Adiciona TODOS os Pedidos
+            if pedidos:
+                for p in sorted(pedidos, key=lambda x: x.name):
+                    p.seek(0)
+                    merger.append(p)
                     
-                if i < len(notas_ord):
-                    notas_ord[i].seek(0)
-                    merger.append(notas_ord[i])
+            # 2. Adiciona TODAS as Notas
+            if notas:
+                for n in sorted(notas, key=lambda x: x.name):
+                    n.seek(0)
+                    merger.append(n)
                     
-                if i < len(boletos_ord):
-                    boletos_ord[i].seek(0)
-                    merger.append(boletos_ord[i])
+            # 3. Adiciona TODOS os Boletos
+            if boletos:
+                for b in sorted(boletos, key=lambda x: x.name):
+                    b.seek(0)
+                    merger.append(b)
                 
             output = io.BytesIO()
             merger.write(output)
@@ -234,7 +232,7 @@ if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True, disabled=botao
             output.seek(0)
             
             st.balloons()
-            st.success("PDFs agrupados na ordem correta! Clique no botão abaixo para descarregar o ficheiro.")
+            st.success("PDFs agrupados com sucesso! Ordem estrita aplicada.")
             
             hora_correta = datetime.utcnow() - timedelta(hours=3)
             agora = hora_correta.strftime("%d-%m-%Y-%H:%M") 
