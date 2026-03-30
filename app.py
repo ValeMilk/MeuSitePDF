@@ -11,7 +11,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# 2. Injeção de Design (CSS) - Efeito Light Glass (Contraste Perfeito)
+# 2. Injeção de Design (CSS) - Força Bruta e Fundos Sólidos
 def set_background(image_file):
     try:
         with open(image_file, "rb") as f:
@@ -28,39 +28,49 @@ def set_background(image_file):
         
         .stApp > header {{ background-color: transparent; }}
         
-        h1, h2, .subtitulo {{
+        /* Títulos principais fora das caixas (Brancos com sombra negra) */
+        h1, .subtitulo {{
             color: #ffffff !important;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
         }}
 
+        /* FUNDO SÓLIDO PARA AS CAIXAS: Acaba de vez com a camuflagem da letra */
         div[data-testid="stVerticalBlockBorderWrapper"] {{
-            background-color: rgba(255, 255, 255, 0.90) !important; 
+            background-color: #F8FAFC !important; /* Branco/Gelo sólido */
             border-radius: 12px !important;
-            border: 1px solid rgba(255, 255, 255, 0.4) !important;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+            border: 2px solid #CBD5E1 !important;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
             padding: 15px;
         }}
 
-        div[data-testid="stVerticalBlockBorderWrapper"] p, 
-        div[data-testid="stVerticalBlockBorderWrapper"] span,
-        div[data-testid="stVerticalBlockBorderWrapper"] li,
-        div[data-testid="stVerticalBlockBorderWrapper"] label,
-        div[data-testid="stVerticalBlockBorderWrapper"] h3 {{
+        /* CLASSE DE FORÇA BRUTA: Obriga qualquer texto aqui dentro a ser Preto/Azul Marinho */
+        .texto-escuro, .texto-escuro p, .texto-escuro span, .texto-escuro li, .texto-escuro b {{
             color: #0F172A !important; 
-            font-weight: 600 !important;
+            font-weight: 700 !important;
         }}
 
+        /* Força os Cabeçalhos H3 dentro das caixas a ficarem escuros */
+        div[data-testid="stVerticalBlockBorderWrapper"] h3 {{
+            color: #0F172A !important;
+            font-weight: 800 !important;
+            margin-bottom: -10px !important; /* Aproxima o título da caixa de upload/texto */
+        }}
+
+        /* Caixas de digitação */
         div[data-testid="stTextInput"] input {{
             background-color: #FFFFFF !important;
             color: #0F172A !important;
-            border: 1px solid #CBD5E1 !important;
+            border: 1px solid #94A3B8 !important;
             border-radius: 6px !important;
+            font-weight: bold !important;
         }}
 
+        /* Área de Upload */
         div[data-testid="stFileUploader"] {{
-            background-color: rgba(241, 245, 249, 0.6) !important;
-            border: 1px dashed #64748B !important;
+            background-color: #F1F5F9 !important;
+            border: 2px dashed #64748B !important;
             border-radius: 8px;
+            margin-top: 15px;
         }}
 
         div[data-testid="stFileUploader"] button {{
@@ -72,9 +82,10 @@ def set_background(image_file):
         }}
         div[data-testid="stFileUploader"] button:hover {{ background-color: #1D4ED8 !important; }}
 
+        /* Barra de Status Azul Escura */
         .status-header {{
-            background-color: #1E40AF; 
-            color: white !important; 
+            background-color: #1E40AF !important; 
+            color: #FFFFFF !important;
             padding: 10px; 
             text-align: center; 
             font-weight: bold; 
@@ -83,79 +94,75 @@ def set_background(image_file):
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }}
 
+        /* Botão de Processar */
         .stButton > button {{
-            background-color: #16A34A !important;
+            background-color: #16A34A !important; 
             color: white !important;
             border: none !important;
             border-radius: 8px !important;
             font-weight: bold;
             padding: 12px !important;
             font-size: 16px !important;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }}
         .stButton > button:hover {{ background-color: #15803D !important; }}
-        
-        .stButton > button:disabled {{
-            background-color: #94A3B8 !important;
-            color: #F1F5F9 !important;
-        }}
+        .stButton > button:disabled {{ background-color: #94A3B8 !important; color: #F8FAFC !important; }}
         
         .stProgress > div > div > div {{ background-color: #2563EB !important; }}
-        
-        div[data-testid="stAlert"] p, div[data-testid="stAlert"] span {{
-            color: #0F172A !important;
-            font-weight: bold;
-        }}
         </style>
         """
         st.markdown(css, unsafe_allow_html=True)
     except FileNotFoundError:
-        st.warning("⚠️ Imagem 'fundo.png' não encontrada. Coloque-a na mesma pasta do app.py.")
+        st.warning("⚠️ Imagem 'fundo.png' não encontrada.")
 
 set_background("fundo.png")
 
-# 3. Cabeçalho
+# 3. Cabeçalho Principal
 st.markdown("<h1>Agrupador Inteligente de PDFs 📄</h1>", unsafe_allow_html=True)
 st.markdown("<p class='subtitulo'>Envie os ficheiros completos. O sistema vai montar o PDF final na ordem: Pedido > Nota Fiscal > Boleto.</p>", unsafe_allow_html=True)
 
-# Bloco de Identificação (Motorista e Carga)
+# 4. Bloco de Identificação (Títulos Grandes)
 with st.container(border=True):
     col_mot, col_carga = st.columns(2)
+    
     with col_mot:
-        motorista = st.text_input("🚚 Nome do Motorista:")
+        # Título H3 igual aos dos uploads
+        st.markdown("<h3>🚚 Nome do Motorista:</h3>", unsafe_allow_html=True)
+        # Input com a label nativa escondida
+        motorista = st.text_input("", key="mot", label_visibility="collapsed")
+        
     with col_carga:
-        carga = st.text_input("📦 Nº da Carga:")
+        st.markdown("<h3>📦 Nº da Carga:</h3>", unsafe_allow_html=True)
+        carga = st.text_input("", key="car", label_visibility="collapsed")
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 4. As 3 Colunas principais
+# 5. As 3 Colunas principais
 col1, col2, col3 = st.columns(3)
 
 with col1:
     with st.container(border=True):
-        st.markdown("### 1. Pedidos")
-        st.markdown("<p style='font-size:12px; margin-top:-15px;'>Upload Arquivo de Pedidos</p>", unsafe_allow_html=True)
+        st.markdown("<h3>1. Pedidos</h3>", unsafe_allow_html=True)
+        st.markdown("<div class='texto-escuro' style='font-size:12px;'>Upload Arquivo de Pedidos</div>", unsafe_allow_html=True)
         pedidos = st.file_uploader("", type="pdf", accept_multiple_files=True, key="ped", label_visibility="collapsed")
 
 with col2:
     with st.container(border=True):
-        st.markdown("### 2. Notas Fiscais")
-        st.markdown("<p style='font-size:12px; margin-top:-15px;'>Upload Arquivo de Notas</p>", unsafe_allow_html=True)
+        st.markdown("<h3>2. Notas Fiscais</h3>", unsafe_allow_html=True)
+        st.markdown("<div class='texto-escuro' style='font-size:12px;'>Upload Arquivo de Notas</div>", unsafe_allow_html=True)
         notas = st.file_uploader("", type="pdf", accept_multiple_files=True, key="nf", label_visibility="collapsed")
 
 with col3:
     with st.container(border=True):
-        st.markdown("### 3. Boletos")
-        st.markdown("<p style='font-size:12px; margin-top:-15px;'>Upload Arquivo de Boletos</p>", unsafe_allow_html=True)
+        st.markdown("<h3>3. Boletos</h3>", unsafe_allow_html=True)
+        st.markdown("<div class='texto-escuro' style='font-size:12px;'>Upload Arquivo de Boletos</div>", unsafe_allow_html=True)
         boletos = st.file_uploader("", type="pdf", accept_multiple_files=True, key="bol", label_visibility="collapsed")
 
-# 5. Lógica visual e Contagem
+# 6. Lógica visual e Contagem
 qtd_pedidos = len(pedidos) if pedidos else 0
 qtd_notas = len(notas) if notas else 0
 qtd_boletos = len(boletos) if boletos else 0
 
 total_arquivos = qtd_pedidos + qtd_notas + qtd_boletos
-
 total_categorias = (1 if qtd_pedidos > 0 else 0) + (1 if qtd_notas > 0 else 0) + (1 if qtd_boletos > 0 else 0)
 progresso = int((total_categorias / 3) * 100)
 
@@ -165,6 +172,7 @@ bol_status = f"Recebido ({qtd_boletos} ficheiro(s))" if qtd_boletos > 0 else "Ag
 
 st.markdown("<br>", unsafe_allow_html=True)
 
+# 7. Caixa de Status com Classe 'texto-escuro' blindada
 with st.container(border=True):
     st.markdown('<div class="status-header">Processing Status</div>', unsafe_allow_html=True)
     
@@ -172,25 +180,28 @@ with st.container(border=True):
     
     with stat_col1:
         st.progress(progresso)
-        st.markdown(f"<span style='font-size: 20px; font-weight:bold;'>{progresso}%</span>", unsafe_allow_html=True)
+        # Div forçando tudo a ser escuro
+        st.markdown(f"<div class='texto-escuro' style='font-size: 24px;'>{progresso}%</div>", unsafe_allow_html=True)
+        
         if progresso == 100:
-            st.markdown("✅ **Todos os uploads recebidos! Pronto para processar.**")
+            st.markdown("<div class='texto-escuro'>✅ Todos os uploads recebidos! Pronto para processar.</div>", unsafe_allow_html=True)
         else:
-            st.markdown("⏳ Aguardando uploads adicionais...")
+            st.markdown("<div class='texto-escuro'>⏳ Aguardando uploads adicionais...</div>", unsafe_allow_html=True)
             
     with stat_col2:
         st.markdown(f"""
-        <ul style='font-size: 14px; line-height: 1.6; list-style-type: none; padding-left: 0;'>
-            <li>▪️ <b>Pedidos:</b> {ped_status}</li>
-            <li>▪️ <b>Notas Fiscais:</b> {nf_status}</li>
-            <li>▪️ <b>Boletos:</b> {bol_status}</li>
-        </ul>
+        <div class='texto-escuro'>
+            <ul style='font-size: 14px; line-height: 1.6; list-style-type: none; padding-left: 0;'>
+                <li>▪️ <b>Pedidos:</b> {ped_status}</li>
+                <li>▪️ <b>Notas Fiscais:</b> {nf_status}</li>
+                <li>▪️ <b>Boletos:</b> {bol_status}</li>
+            </ul>
+        </div>
         """, unsafe_allow_html=True)
 
-# 6. TRAVA DE SEGURANÇA E BOTÃO DE PROCESSAMENTO
+# 8. TRAVA DE SEGURANÇA E BOTÃO DE PROCESSAMENTO
 faltam_dados = motorista.strip() == "" or carga.strip() == ""
 faltam_arquivos = total_arquivos < 2
-
 botao_bloqueado = faltam_dados or faltam_arquivos
 
 if faltam_dados:
@@ -202,12 +213,10 @@ if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True, disabled=botao
     if pedidos or notas or boletos:
         merger = PdfWriter()
         try:
-            # GARANTIA 1: Ordena os arquivos pelo nome original (evita bagunça no upload)
             pedidos_ord = sorted(pedidos, key=lambda x: x.name) if pedidos else []
             notas_ord = sorted(notas, key=lambda x: x.name) if notas else []
             boletos_ord = sorted(boletos, key=lambda x: x.name) if boletos else []
             
-            # GARANTIA 2: Junta em blocos rígidos na ordem exata solicitada
             for p in pedidos_ord: merger.append(p)
             for n in notas_ord: merger.append(n)
             for b in boletos_ord: merger.append(b)
@@ -225,7 +234,6 @@ if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True, disabled=botao
             
             nome_mot = motorista.strip().upper()
             num_carga = carga.strip()
-            
             nome_final_pdf = f"{nome_mot} ({num_carga}) - {agora}.pdf"
             
             st.download_button(
