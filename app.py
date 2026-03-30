@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 # 1. Configuração da página
 st.set_page_config(page_title="Agrupador Inteligente de PDFs", page_icon="logo.png", layout="wide")
 
-# 2. Design e CSS Corrigido para Legibilidade Total
+# 2. Design e CSS Estrito
 def set_background(image_file):
     try:
         with open(image_file, "rb") as f:
@@ -27,16 +27,17 @@ def set_background(image_file):
         /* Spinner com fonte preta */
         div[data-testid="stSpinner"] p {{ color: #000000 !important; font-weight: bold !important; font-size: 16px !important; }}
 
-        /* CORREÇÃO DO SUCESSO: Fundo Branco e Texto Preto/Verde Escuro para leitura clara */
-        div[data-testid="stNotification"] {{ 
-            background-color: #FFFFFF !important; 
-            border: 3px solid #16A34A !important; 
-            border-radius: 8px !important; 
-        }}
-        div[data-testid="stNotification"] p {{ 
-            color: #000000 !important; 
-            font-weight: 900 !important; 
+        /* NOSSA CAIXA DE SUCESSO CUSTOMIZADA (Substitui o st.success) */
+        .sucesso-custom {{
+            background-color: #000000 !important;
+            color: #ffffff !important;
+            border: 2px solid #16A34A !important;
+            padding: 15px !important;
+            border-radius: 8px !important;
+            font-weight: 900 !important;
             font-size: 18px !important;
+            text-align: center !important;
+            margin-bottom: 10px !important;
         }}
         </style>
         """
@@ -45,7 +46,6 @@ def set_background(image_file):
 
 set_background("fundo.png")
 
-# Título e Subtítulo restaurados conforme solicitado
 st.markdown("<h1>Agrupador Inteligente de PDFs 📄</h1>", unsafe_allow_html=True)
 st.markdown("<p class='subtitulo'>Envie os ficheiros completos. O sistema vai montar o PDF final na ordem: Pedido > Nota Fiscal > Boleto.</p>", unsafe_allow_html=True)
 
@@ -75,7 +75,7 @@ with col3:
         st.markdown("<h3 style='color:white;'>3. Boletos</h3>", unsafe_allow_html=True)
         arq_bol = st.file_uploader("B", type="pdf", accept_multiple_files=True, key="up_bol", label_visibility="collapsed")
 
-# 5. Cálculos de Status
+# 5. Lógica de Status
 qtd_p = len(arq_ped) if arq_ped else 0
 qtd_n = len(arq_nf) if arq_nf else 0
 qtd_b = len(arq_bol) if arq_bol else 0
@@ -86,9 +86,8 @@ progresso = int((cats_cheias / 3) * 100)
 dados_ok = motorista.strip() != "" and carga.strip() != ""
 bloqueado = not (dados_ok and total_docs >= 2)
 
-# CSS Dinâmico para cor do botão
 cor_btn = "#16A34A" if not bloqueado else "#334155"
-st.markdown(f"<style>div.stButton > button {{ background-color: {cor_btn} !important; color: white !important; font-weight: bold !important; border-radius: 8px !important; height: 50px !important; width: 100% !important; font-size: 18px !important; border: none !important; transition: 0.3s; }}</style>", unsafe_allow_html=True)
+st.markdown(f"<style>div.stButton > button {{ background-color: {cor_btn} !important; color: white !important; font-weight: bold !important; border-radius: 8px !important; height: 50px !important; width: 100% !important; font-size: 18px !important; border: none !important; }}</style>", unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 with st.container(border=True):
@@ -162,7 +161,9 @@ if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True, disabled=bloqu
         output.seek(0)
         
         st.balloons()
-        st.success("✅ ARQUIVOS PROCESSADOS COM SUCESSO!")
+        # SUBSTITUIÇÃO DO st.success POR HTML CUSTOMIZADO PARA LEITURA TOTAL
+        st.markdown("<div class='sucesso-custom'>✅ ARQUIVOS PROCESSADOS COM SUCESSO!</div>", unsafe_allow_html=True)
+        
         agora = (datetime.utcnow() - timedelta(hours=3)).strftime("%d-%m-%Y-%Hh%M")
         nome_f = f"{motorista.upper()} ({carga}) - {agora}.pdf"
         st.download_button(label=f"📥 BAIXAR: {nome_f}", data=output, file_name=nome_f, mime="application/pdf", use_container_width=True)
