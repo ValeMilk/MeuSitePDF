@@ -2,6 +2,7 @@ import streamlit as st
 from pypdf import PdfWriter
 import io
 import base64
+from datetime import datetime # Importação nova para puxar a hora exata
 
 # 1. Configuração da página
 st.set_page_config(
@@ -10,7 +11,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# 2. Injeção pesada de Design (CSS) para replicar a imagem
+# 2. Injeção pesada de Design (CSS)
 def set_background(image_file):
     try:
         with open(image_file, "rb") as f:
@@ -18,7 +19,6 @@ def set_background(image_file):
         
         css = f"""
         <style>
-        /* Imagem de Fundo Abstrata */
         .stApp {{
             background-image: url("data:image/jpg;base64,{encoded_string}");
             background-size: cover;
@@ -26,11 +26,10 @@ def set_background(image_file):
             background-attachment: fixed;
         }}
         
-        /* Força os textos do corpo do site para branco (para contrastar com o fundo) */
         .stApp > header {{ background-color: transparent; }}
         h1, p {{ color: white; }}
 
-        /* Estilo dos Cards Bege (Caixas) */
+        /* Estilo dos Cards Bege */
         div[data-testid="stVerticalBlockBorderWrapper"] {{
             background-color: #F4F2E9 !important;
             border-radius: 12px !important;
@@ -39,12 +38,12 @@ def set_background(image_file):
             padding: 10px;
         }}
 
-        /* Força os textos dentro dos Cards Bege a ficarem escuros */
         div[data-testid="stVerticalBlockBorderWrapper"] p, 
         div[data-testid="stVerticalBlockBorderWrapper"] h3, 
         div[data-testid="stVerticalBlockBorderWrapper"] h1,
         div[data-testid="stVerticalBlockBorderWrapper"] span,
-        div[data-testid="stVerticalBlockBorderWrapper"] li {{
+        div[data-testid="stVerticalBlockBorderWrapper"] li,
+        div[data-testid="stVerticalBlockBorderWrapper"] label {{
             color: #1B222C !important;
         }}
 
@@ -55,14 +54,8 @@ def set_background(image_file):
             border: none !important;
             border-radius: 6px !important;
         }}
-        div[data-testid="stFileUploader"] button:hover {{
-            background-color: #0d2745 !important;
-        }}
-
-        /* Retira o fundo cinza da área de arrastar arquivos */
-        div[data-testid="stFileUploader"] {{
-            background-color: transparent !important;
-        }}
+        div[data-testid="stFileUploader"] button:hover {{ background-color: #0d2745 !important; }}
+        div[data-testid="stFileUploader"] {{ background-color: transparent !important; }}
 
         /* Botão gigante de Processar em Preto/Cinza Escuro */
         .stButton > button {{
@@ -77,9 +70,7 @@ def set_background(image_file):
         .stButton > button:hover {{ background-color: #1a1c21 !important; }}
         
         /* Cor da Barra de Progresso */
-        .stProgress > div > div > div {{
-            background-color: #143A66 !important;
-        }}
+        .stProgress > div > div > div {{ background-color: #143A66 !important; }}
         </style>
         """
         st.markdown(css, unsafe_allow_html=True)
@@ -92,7 +83,17 @@ set_background("fundo.jpg")
 st.markdown("<h1>Agrupador Inteligente de PDFs 📄</h1>", unsafe_allow_html=True)
 st.write("Envie os arquivos completos. O sistema vai montar o PDF final na ordem: Pedido > Nota Fiscal > Boleto.")
 
-# 4. As 3 Colunas principais (Usando st.container para criar os cards beges)
+# NOVO: Bloco de Identificação (Motorista e Carga)
+with st.container(border=True):
+    col_mot, col_carga = st.columns(2)
+    with col_mot:
+        motorista = st.text_input("🚚 Nome do Motorista:")
+    with col_carga:
+        carga = st.text_input("📦 Nº da Carga:")
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# 4. As 3 Colunas principais
 col1, col2, col3 = st.columns(3)
 
 with col1:
@@ -113,7 +114,7 @@ with col3:
         st.markdown("<p style='font-size:12px; margin-top:-15px;'>Upload Arquivo de Boletos</p>", unsafe_allow_html=True)
         boletos = st.file_uploader("", type="pdf", accept_multiple_files=True, key="bol", label_visibility="collapsed")
 
-# 5. Lógica visual da Barra de Status (Calcula os envios)
+# 5. Lógica visual da Barra de Status
 qtd_pedidos = len(pedidos) if pedidos else 0
 qtd_notas = len(notas) if notas else 0
 qtd_boletos = len(boletos) if boletos else 0
@@ -127,9 +128,7 @@ bol_status = f"Recebido ({qtd_boletos} arquivo(s))" if qtd_boletos > 0 else "Agu
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 6. Caixa de Processing Status
 with st.container(border=True):
-    # Gambiarra visual para colar o título azul escuro no topo do card
     st.markdown("""
         <div style="background-color: #143A66; color: white !important; padding: 10px; text-align: center; font-weight: bold; border-radius: 8px 8px 0 0; margin: -10px -10px 15px -10px;">
             Processing Status
@@ -155,17 +154,18 @@ with st.container(border=True):
         </ul>
         """, unsafe_allow_html=True)
 
-# 7. Botão Final de Processamento e Download
+# 6. Botão Final de Processamento e Download
 if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True):
     if pedidos or notas or boletos:
         merger = PdfWriter()
         try:
-            if pedidos:
-                for p in pedidos: merger.append(p)
-            if notas:
-                for n in notas: merger.append(n)
-            if boletos:
-                for b in boletos: merger.append(b)
+            # LÓGICA CORRIGIDA: Intercalando um a um (Pedido -> Nota -> Boleto)
+            max_arquivos = max(qtd_pedidos, qtd_notas, qtd_boletos)
+            
+            for i in range(max_arquivos):
+                if i < qtd_pedidos: merger.append(pedidos[i])
+                if i < qtd_notas: merger.append(notas[i])
+                if i < qtd_boletos: merger.append(boletos[i])
                 
             output = io.BytesIO()
             merger.write(output)
@@ -175,10 +175,17 @@ if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True):
             st.balloons()
             st.success("PDFs agrupados com sucesso! Clique no botão abaixo para baixar.")
             
+            # NOVO: Gerando o nome do arquivo dinâmico
+            agora = datetime.now().strftime("%d-%m-%Y-%H:%M") # Formata a data e hora
+            nome_mot = motorista.strip().upper() if motorista else "MOTORISTA_NAO_INFORMADO"
+            num_carga = carga.strip() if carga else "SEM_CARGA"
+            
+            nome_final_pdf = f"{nome_mot} ({num_carga}) - {agora}.pdf"
+            
             st.download_button(
-                label="📥 BAIXAR PDF FINAL",
+                label=f"📥 BAIXAR {nome_final_pdf}",
                 data=output,
-                file_name="Agrupado_ValeMilk.pdf",
+                file_name=nome_final_pdf,
                 mime="application/pdf",
                 use_container_width=True
             )
