@@ -234,7 +234,7 @@ if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True, disabled=botao
             nome_final_pdf = f"{nome_mot} ({num_carga}) - {agora}.pdf"
             
             st.download_button(
-                label=f"📥 DESCARREGAR {nome_final_pdf}",
+                label=f"📥 Baixar arquivo: {nome_final_pdf}",
                 data=output,
                 file_name=nome_final_pdf,
                 mime="application/pdf",
