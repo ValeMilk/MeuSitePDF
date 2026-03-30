@@ -11,7 +11,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# 2. Injeção de Design (CSS) - Força Bruta e Fundos Sólidos
+# 2. Injeção de Design (CSS)
 def set_background(image_file):
     try:
         with open(image_file, "rb") as f:
@@ -28,35 +28,30 @@ def set_background(image_file):
         
         .stApp > header {{ background-color: transparent; }}
         
-        /* Títulos principais fora das caixas (Brancos com sombra negra) */
         h1, .subtitulo {{
             color: #ffffff !important;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
         }}
 
-        /* FUNDO SÓLIDO PARA AS CAIXAS: Acaba de vez com a camuflagem da letra */
         div[data-testid="stVerticalBlockBorderWrapper"] {{
-            background-color: #F8FAFC !important; /* Branco/Gelo sólido */
+            background-color: #F8FAFC !important; 
             border-radius: 12px !important;
             border: 2px solid #CBD5E1 !important;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
             padding: 15px;
         }}
 
-        /* CLASSE DE FORÇA BRUTA: Obriga qualquer texto aqui dentro a ser Preto/Azul Marinho */
         .texto-escuro, .texto-escuro p, .texto-escuro span, .texto-escuro li, .texto-escuro b {{
             color: #0F172A !important; 
             font-weight: 700 !important;
         }}
 
-        /* Força os Cabeçalhos H3 dentro das caixas a ficarem escuros */
         div[data-testid="stVerticalBlockBorderWrapper"] h3 {{
             color: #0F172A !important;
             font-weight: 800 !important;
-            margin-bottom: -10px !important; /* Aproxima o título da caixa de upload/texto */
+            margin-bottom: -10px !important; 
         }}
 
-        /* Caixas de digitação */
         div[data-testid="stTextInput"] input {{
             background-color: #FFFFFF !important;
             color: #0F172A !important;
@@ -65,7 +60,6 @@ def set_background(image_file):
             font-weight: bold !important;
         }}
 
-        /* Área de Upload */
         div[data-testid="stFileUploader"] {{
             background-color: #F1F5F9 !important;
             border: 2px dashed #64748B !important;
@@ -82,7 +76,6 @@ def set_background(image_file):
         }}
         div[data-testid="stFileUploader"] button:hover {{ background-color: #1D4ED8 !important; }}
 
-        /* Barra de Status Azul Escura */
         .status-header {{
             background-color: #1E40AF !important; 
             color: #FFFFFF !important;
@@ -94,7 +87,6 @@ def set_background(image_file):
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }}
 
-        /* Botão de Processar */
         .stButton > button {{
             background-color: #16A34A !important; 
             color: white !important;
@@ -125,9 +117,7 @@ with st.container(border=True):
     col_mot, col_carga = st.columns(2)
     
     with col_mot:
-        # Título H3 igual aos dos uploads
         st.markdown("<h3>🚚 Nome do Motorista:</h3>", unsafe_allow_html=True)
-        # Input com a label nativa escondida
         motorista = st.text_input("", key="mot", label_visibility="collapsed")
         
     with col_carga:
@@ -172,7 +162,7 @@ bol_status = f"Recebido ({qtd_boletos} ficheiro(s))" if qtd_boletos > 0 else "Ag
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 7. Caixa de Status com Classe 'texto-escuro' blindada
+# 7. Caixa de Status
 with st.container(border=True):
     st.markdown('<div class="status-header">Processing Status</div>', unsafe_allow_html=True)
     
@@ -180,7 +170,6 @@ with st.container(border=True):
     
     with stat_col1:
         st.progress(progresso)
-        # Div forçando tudo a ser escuro
         st.markdown(f"<div class='texto-escuro' style='font-size: 24px;'>{progresso}%</div>", unsafe_allow_html=True)
         
         if progresso == 100:
@@ -199,16 +188,24 @@ with st.container(border=True):
         </div>
         """, unsafe_allow_html=True)
 
-# 8. TRAVA DE SEGURANÇA E BOTÃO DE PROCESSAMENTO
+# 8. TRAVA DE SEGURANÇA E CAIXA DE ALERTA VERMELHA CUSTOMIZADA
 faltam_dados = motorista.strip() == "" or carga.strip() == ""
 faltam_arquivos = total_arquivos < 2
 botao_bloqueado = faltam_dados or faltam_arquivos
 
-if faltam_dados:
-    st.warning("⚠️ Atenção: Preencha o Nome do Motorista e o Nº da Carga.")
-elif faltam_arquivos:
-    st.warning("⚠️ Atenção: Anexe pelo menos 2 arquivos no total para poder realizar o agrupamento.")
+# Caixa de erro construída do zero (Fundo vermelho claro, letra vermelho escuro)
+alerta_html = """
+<div style="background-color: #FEE2E2; color: #991B1B; padding: 15px; border-radius: 8px; border: 2px solid #FCA5A5; font-weight: bold; margin-bottom: 15px; font-size: 15px;">
+    {mensagem}
+</div>
+"""
 
+if faltam_dados:
+    st.markdown(alerta_html.format(mensagem="⚠️ Atenção: Preencha o Nome do Motorista e o Nº da Carga."), unsafe_allow_html=True)
+elif faltam_arquivos:
+    st.markdown(alerta_html.format(mensagem="⚠️ Atenção: Anexe pelo menos 2 arquivos no total para poder realizar o agrupamento."), unsafe_allow_html=True)
+
+# Botão Final
 if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True, disabled=botao_bloqueado):
     if pedidos or notas or boletos:
         merger = PdfWriter()
@@ -237,7 +234,7 @@ if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True, disabled=botao
             nome_final_pdf = f"{nome_mot} ({num_carga}) - {agora}.pdf"
             
             st.download_button(
-                label=f"📥 Baixar arquivo: {nome_final_pdf}",
+                label=f"📥 DESCARREGAR {nome_final_pdf}",
                 data=output,
                 file_name=nome_final_pdf,
                 mime="application/pdf",
