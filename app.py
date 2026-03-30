@@ -11,7 +11,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# 2. Injeção de Design (CSS) - Efeito Dark Glass Premium
+# 2. Injeção de Design (CSS) - Efeito Light Glass (Contraste Perfeito)
 def set_background(image_file):
     try:
         with open(image_file, "rb") as f:
@@ -29,44 +29,47 @@ def set_background(image_file):
         
         .stApp > header {{ background-color: transparent; }}
         
-        /* Títulos principais com sombra para destacar do fundo */
-        h1, h2, h3 {{
+        /* Títulos principais (Brancos com sombra escura para leitura no fundo) */
+        h1, h2, .subtitulo {{
             color: #ffffff !important;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
         }}
 
-        /* Caixas principais (Cards) - Efeito Vidro Escuro */
+        /* Caixas principais (Cards) - Vidro Branco Fosco (Para a fonte não sumir!) */
         div[data-testid="stVerticalBlockBorderWrapper"] {{
-            background-color: rgba(15, 23, 42, 0.90) !important; /* Fundo azul marinho escuro quase sólido */
+            background-color: rgba(255, 255, 255, 0.90) !important; 
             border-radius: 12px !important;
-            border: 1px solid rgba(255, 255, 255, 0.15) !important;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.4) !important;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
             padding: 15px;
         }}
 
-        /* Textos dentro dos cards (Branco gelo para leitura perfeita) */
+        /* FORÇANDO Textos DENTRO dos cards a serem ESCUROS */
         div[data-testid="stVerticalBlockBorderWrapper"] p, 
         div[data-testid="stVerticalBlockBorderWrapper"] span,
         div[data-testid="stVerticalBlockBorderWrapper"] li,
-        div[data-testid="stVerticalBlockBorderWrapper"] label {{
-            color: #E2E8F0 !important; 
+        div[data-testid="stVerticalBlockBorderWrapper"] label,
+        div[data-testid="stVerticalBlockBorderWrapper"] h3 {{
+            color: #0F172A !important; 
+            font-weight: 600 !important;
         }}
 
-        /* Caixas de digitação (Inputs) */
+        /* Caixas de digitação */
         div[data-testid="stTextInput"] input {{
-            background-color: rgba(0, 0, 0, 0.4) !important;
-            color: white !important;
-            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            background-color: #FFFFFF !important;
+            color: #0F172A !important;
+            border: 1px solid #CBD5E1 !important;
+            border-radius: 6px !important;
         }}
 
         /* Área de Upload (Tracejado) */
         div[data-testid="stFileUploader"] {{
-            background-color: rgba(30, 41, 59, 0.5) !important;
-            border: 1px dashed #475569 !important;
+            background-color: rgba(241, 245, 249, 0.6) !important;
+            border: 1px dashed #64748B !important;
             border-radius: 8px;
         }}
 
-        /* O botão "Browse files" em azul vibrante */
+        /* Botão "Browse files" em azul */
         div[data-testid="stFileUploader"] button {{
             background-color: #2563EB !important;
             color: white !important;
@@ -79,7 +82,7 @@ def set_background(image_file):
         /* Barra Azul do Título "Processing Status" */
         .status-header {{
             background-color: #1E40AF; 
-            color: white; 
+            color: white !important; 
             padding: 10px; 
             text-align: center; 
             font-weight: bold; 
@@ -90,7 +93,7 @@ def set_background(image_file):
 
         /* Botão gigante de Processar */
         .stButton > button {{
-            background-color: #16A34A !important; /* Verde Elegante */
+            background-color: #16A34A !important; /* Verde */
             color: white !important;
             border: none !important;
             border-radius: 8px !important;
@@ -103,17 +106,15 @@ def set_background(image_file):
         
         /* Botão bloqueado (Cinza) */
         .stButton > button:disabled {{
-            background-color: #334155 !important;
-            color: #94A3B8 !important;
+            background-color: #94A3B8 !important;
+            color: #F1F5F9 !important;
         }}
         
-        /* CORREÇÃO DO AVISO AMARELO NO FUNDO DA TELA */
-        div[data-testid="stAlert"] {{
-            border-radius: 8px !important;
-            border: none !important;
-        }}
+        .stProgress > div > div > div {{ background-color: #2563EB !important; }}
+        
+        /* Textos dos alertas (Avisos Amarelos/Vermelhos) */
         div[data-testid="stAlert"] p, div[data-testid="stAlert"] span {{
-            color: #0F172A !important; /* Força o texto do aviso a ser escuro para dar contraste */
+            color: #0F172A !important;
             font-weight: bold;
         }}
         </style>
@@ -126,7 +127,7 @@ set_background("fundo.png")
 
 # 3. Cabeçalho
 st.markdown("<h1>Agrupador Inteligente de PDFs 📄</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-shadow: 1px 1px 3px rgba(0,0,0,0.8);'>Envie os ficheiros completos. O sistema vai montar o PDF final na ordem: Pedido > Nota Fiscal > Boleto.</p>", unsafe_allow_html=True)
+st.markdown("<p class='subtitulo'>Envie os ficheiros completos. O sistema vai montar o PDF final na ordem: Pedido > Nota Fiscal > Boleto.</p>", unsafe_allow_html=True)
 
 # Bloco de Identificação (Motorista e Carga)
 with st.container(border=True):
@@ -159,10 +160,12 @@ with col3:
         st.markdown("<p style='font-size:12px; margin-top:-15px;'>Upload Arquivo de Boletos</p>", unsafe_allow_html=True)
         boletos = st.file_uploader("", type="pdf", accept_multiple_files=True, key="bol", label_visibility="collapsed")
 
-# 5. Lógica visual da Barra de Status
+# 5. Lógica visual e Contagem
 qtd_pedidos = len(pedidos) if pedidos else 0
 qtd_notas = len(notas) if notas else 0
 qtd_boletos = len(boletos) if boletos else 0
+
+total_arquivos = qtd_pedidos + qtd_notas + qtd_boletos # Conta quantos arquivos existem no total
 
 total_categorias = (1 if qtd_pedidos > 0 else 0) + (1 if qtd_notas > 0 else 0) + (1 if qtd_boletos > 0 else 0)
 progresso = int((total_categorias / 3) * 100)
@@ -195,13 +198,20 @@ with st.container(border=True):
         </ul>
         """, unsafe_allow_html=True)
 
+
 # 6. TRAVA DE SEGURANÇA E BOTÃO DE PROCESSAMENTO
 faltam_dados = motorista.strip() == "" or carga.strip() == ""
+faltam_arquivos = total_arquivos < 2 # BLOQUEIO: Exige pelo menos 2 arquivos no total para liberar a junção
+
+# O botão fica bloqueado se faltarem textos ou se houver menos de 2 arquivos
+botao_bloqueado = faltam_dados or faltam_arquivos
 
 if faltam_dados:
-    st.warning("⚠️ Atenção: Preencha o Nome do Motorista e o Nº da Carga para liberar o botão de processamento.")
+    st.warning("⚠️ Atenção: Preencha o Nome do Motorista e o Nº da Carga.")
+elif faltam_arquivos:
+    st.warning("⚠️ Atenção: Anexe pelo menos 2 arquivos no total para poder realizar o agrupamento.")
 
-if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True, disabled=faltam_dados):
+if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True, disabled=botao_bloqueado):
     if pedidos or notas or boletos:
         merger = PdfWriter()
         try:
@@ -229,7 +239,7 @@ if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True, disabled=falta
             nome_final_pdf = f"{nome_mot} ({num_carga}) - {agora}.pdf"
             
             st.download_button(
-                label=f"📥 DESCARREGAR {nome_final_pdf}",
+                label=f"📥 Baixar arquivo: {nome_final_pdf}",
                 data=output,
                 file_name=nome_final_pdf,
                 mime="application/pdf",
@@ -237,5 +247,3 @@ if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True, disabled=falta
             )
         except Exception as e:
             st.error(f"Erro ao processar: {e}")
-    else:
-        st.error("Por favor, faça o upload de pelo menos um ficheiro antes de processar.")
