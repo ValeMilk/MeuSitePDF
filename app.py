@@ -110,23 +110,21 @@ set_background("fundo.png")
 
 # 3. Cabeçalho Principal
 st.markdown("<h1>Agrupador Inteligente de PDFs 📄</h1>", unsafe_allow_html=True)
-st.markdown("<p class='subtitulo'>Envie os ficheiros completos. O sistema vai montar o PDF final na ordem: Pedido > Nota Fiscal > Boleto.</p>", unsafe_allow_html=True)
+st.markdown("<p class='subtitulo'>Envie os ficheiros completos. O sistema vai montar o PDF final na ordem por kits: Pedido 1 > Nota 1 > Boleto 1.</p>", unsafe_allow_html=True)
 
-# 4. Bloco de Identificação (Títulos Grandes)
+# 4. Bloco de Identificação
 with st.container(border=True):
     col_mot, col_carga = st.columns(2)
-    
     with col_mot:
         st.markdown("<h3>🚚 Nome do Motorista:</h3>", unsafe_allow_html=True)
         motorista = st.text_input("", key="mot", label_visibility="collapsed")
-        
     with col_carga:
         st.markdown("<h3>📦 Nº da Carga:</h3>", unsafe_allow_html=True)
         carga = st.text_input("", key="car", label_visibility="collapsed")
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 5. As 3 Colunas principais
+# 5. Colunas de Upload
 col1, col2, col3 = st.columns(3)
 
 with col1:
@@ -188,12 +186,11 @@ with st.container(border=True):
         </div>
         """, unsafe_allow_html=True)
 
-# 8. TRAVA DE SEGURANÇA E CAIXA DE ALERTA VERMELHA CUSTOMIZADA
+# 8. TRAVA E BOTÃO
 faltam_dados = motorista.strip() == "" or carga.strip() == ""
 faltam_arquivos = total_arquivos < 2
 botao_bloqueado = faltam_dados or faltam_arquivos
 
-# Caixa de erro construída do zero (Fundo vermelho claro, letra vermelho escuro)
 alerta_html = """
 <div style="background-color: #FEE2E2; color: #991B1B; padding: 15px; border-radius: 8px; border: 2px solid #FCA5A5; font-weight: bold; margin-bottom: 15px; font-size: 15px;">
     {mensagem}
@@ -205,18 +202,31 @@ if faltam_dados:
 elif faltam_arquivos:
     st.markdown(alerta_html.format(mensagem="⚠️ Atenção: Anexe pelo menos 2 arquivos no total para poder realizar o agrupamento."), unsafe_allow_html=True)
 
-# Botão Final
 if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True, disabled=botao_bloqueado):
     if pedidos or notas or boletos:
         merger = PdfWriter()
         try:
+            # Ordena os arquivos pelo nome (Para P1 casar com N1 e B1)
             pedidos_ord = sorted(pedidos, key=lambda x: x.name) if pedidos else []
             notas_ord = sorted(notas, key=lambda x: x.name) if notas else []
             boletos_ord = sorted(boletos, key=lambda x: x.name) if boletos else []
             
-            for p in pedidos_ord: merger.append(p)
-            for n in notas_ord: merger.append(n)
-            for b in boletos_ord: merger.append(b)
+            # Conta o máximo de arquivos numa coluna para fazer o laço correto
+            max_arquivos = max(len(pedidos_ord), len(notas_ord), len(boletos_ord))
+            
+            # LÓGICA DE KITS INTERCALADOS COM "REBOBINADOR" (.seek(0))
+            for i in range(max_arquivos):
+                if i < len(pedidos_ord):
+                    pedidos_ord[i].seek(0) # Rebobina o PDF para garantir que não será pulado
+                    merger.append(pedidos_ord[i])
+                    
+                if i < len(notas_ord):
+                    notas_ord[i].seek(0)
+                    merger.append(notas_ord[i])
+                    
+                if i < len(boletos_ord):
+                    boletos_ord[i].seek(0)
+                    merger.append(boletos_ord[i])
                 
             output = io.BytesIO()
             merger.write(output)
@@ -224,7 +234,7 @@ if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True, disabled=botao
             output.seek(0)
             
             st.balloons()
-            st.success("PDFs agrupados com sucesso! Clique no botão abaixo para descarregar o ficheiro.")
+            st.success("PDFs agrupados na ordem correta! Clique no botão abaixo para descarregar o ficheiro.")
             
             hora_correta = datetime.utcnow() - timedelta(hours=3)
             agora = hora_correta.strftime("%d-%m-%Y-%H:%M") 
@@ -241,4 +251,4 @@ if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True, disabled=botao
                 use_container_width=True
             )
         except Exception as e:
-            st.error(f"Erro ao processar: {e}")
+            st.error(f"Erro ao processar a junção: {e}")
