@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 # 1. Configuração da página
 st.set_page_config(page_title="Agrupador Inteligente de PDFs", page_icon="logo.png", layout="wide")
 
-# 2. Design e CSS
+# 2. Design e CSS (Com correções de contraste e feedback)
 def set_background(image_file):
     try:
         with open(image_file, "rb") as f:
@@ -37,11 +37,38 @@ def set_background(image_file):
             margin-top: 5px !important;
         }}
         
-        .stButton > button {{ color: white !important; font-weight: bold !important; border-radius: 8px !important; height: 50px !important; width: 100% !important; font-size: 18px !important; }}
+        /* CORREÇÃO DO SPINNER: Força a fonte do st.spinner a ficar escura */
+        div[data-testid="stSpinner"] p {{
+            color: #444444 !important; /* Cinza Escuro para contraste no fundo claro */
+            font-weight: bold !important;
+            font-size: 16px !important;
+        }}
+        
+        /* BOTÃO PRINCIPAL (Estilo Padrão - Desativado/Cinza) */
+        .stButton > button {{ 
+            background-color: #94A3B8 !important; /* Cinza suave quando travado */
+            color: white !important; 
+            font-weight: bold !important; 
+            border-radius: 8px !important; 
+            height: 50px !important; 
+            width: 100% !important; 
+            font-size: 18px !important; 
+            border: none !important;
+            opacity: 0.7; /* Mais opaco quando desativado */
+        }}
 
+        /* CLASSE DINÂMICA: Botão Verde quando tudo tiver OK */
+        .botao-ativado > button {{
+            background-color: #16A34A !important; /* Verde Vibrante */
+            opacity: 1 !important; /* Totalmente opaco */
+        }}
+        .botao-ativado > button:hover {{ background-color: #15803D !important; }}
+
+        /* Notificação de Sucesso (Fundo branco para ler o verde) */
         div[data-testid="stNotification"] {{ background-color: #FFFFFF !important; border: 2px solid #16A34A !important; border-radius: 8px !important; }}
         div[data-testid="stNotification"] p {{ color: #15803D !important; font-weight: 900 !important; }}
 
+        /* Botão de Download (Preto com destaque) */
         a[data-testid="stDownloadButton"], div.stDownloadButton > button {{ background-color: #000000 !important; color: #FFFFFF !important; border-radius: 8px !important; padding: 10px !important; font-weight: bold !important; text-decoration: none !important; display: inline-block !important; width: 100% !important; }}
         </style>
         """
@@ -51,6 +78,7 @@ def set_background(image_file):
 set_background("fundo.png")
 
 st.markdown("<h1>Agrupador Inteligente de PDFs 📄</h1>", unsafe_allow_html=True)
+st.markdown("<p class='subtitulo'>O sistema só libera o processamento com motorista, carga e pelo menos 2 arquivos anexados.</p>", unsafe_allow_html=True)
 
 # 3. Identificação
 with st.container(border=True):
@@ -79,15 +107,17 @@ with col3:
         st.markdown("<h3 style='color:white;'>3. Boletos</h3>", unsafe_allow_html=True)
         arq_bol = st.file_uploader("B", type="pdf", accept_multiple_files=True, key="up_bol", label_visibility="collapsed")
 
-# 5. Status e Travas (Regra de Mínimo 2 Arquivos)
+# 5. Status e Travas
 qtd_ped, qtd_nf, qtd_bol = len(arq_ped or []), len(arq_nf or []), len(arq_bol or [])
 total_arquivos = qtd_ped + qtd_nf + qtd_bol
 categorias = (1 if qtd_ped > 0 else 0) + (1 if qtd_nf > 0 else 0) + (1 if qtd_bol > 0 else 0)
 progresso = int((categorias / 3) * 100)
 
 dados_ok = motorista.strip() != "" and carga.strip() != ""
-# NOVA TRAVA: Só libera se tiver dados preenchidos E pelo menos 2 arquivos no total
 bloqueado = not (dados_ok and total_arquivos >= 2)
+
+# Lógica para aplicar a classe 'botao-ativado'
+classe_botao = "botao-ativado" if not bloqueado else ""
 
 st.markdown("<br>", unsafe_allow_html=True)
 with st.container(border=True):
@@ -107,10 +137,14 @@ with st.container(border=True):
     with sc2:
         st.markdown(f"<div class='texto-status' style='font-size: 14px;'>▪️ Pedidos: {qtd_ped}<br>▪️ Notas: {qtd_nf}<br>▪️ Boletos: {qtd_bol}</div>", unsafe_allow_html=True)
 
-# 6. Processamento
+# 6. Botão de Processamento com feedback visual dinâmico
 st.markdown("<br>", unsafe_allow_html=True)
+
+# Envolvemos o botão em uma div com a classe dinâmica
+st.markdown(f'<div class="{classe_botao}">', unsafe_allow_html=True)
 if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True, disabled=bloqueado):
-    with st.spinner("📦 Organizando..."):
+    # O spinner agora aparecerá com fonte escura (Cinza Escuro)
+    with st.spinner("📦 Processando e organizando arquivos... Por favor, aguarde."):
         agrupamentos = {}
         def extrair(arquivos, tipo):
             if not arquivos: return
@@ -161,3 +195,4 @@ if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True, disabled=bloqu
         agora = (datetime.utcnow() - timedelta(hours=3)).strftime("%d-%m-%Y-%Hh%M")
         nome_f = f"{motorista.upper()} ({carga}) - {agora}.pdf"
         st.download_button(label=f"📥 CLIQUE PARA BAIXAR: {nome_f}", data=output, file_name=nome_f, mime="application/pdf", use_container_width=True)
+st.markdown('</div>', unsafe_allow_html=True)
