@@ -1,2 +1,6 @@
 streamlit
 pypdf
+pdfplumber
+pandas
+pyodbc
+openpyxl

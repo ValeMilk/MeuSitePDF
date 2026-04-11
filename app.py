@@ -24,10 +24,8 @@ def set_background(image_file):
         .status-header {{ background-color: #1E40AF !important; color: #FFFFFF !important; padding: 10px; text-align: center; font-weight: bold; border-radius: 8px; margin-bottom: 15px; }}
         .texto-status {{ color: #ffffff !important; font-weight: 800 !important; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000 !important; }}
         
-        /* Spinner com fonte preta */
         div[data-testid="stSpinner"] p {{ color: #000000 !important; font-weight: bold !important; font-size: 16px !important; }}
 
-        /* NOSSA CAIXA DE SUCESSO CUSTOMIZADA (Substitui o st.success) */
         .sucesso-custom {{
             background-color: #000000 !important;
             color: #ffffff !important;
@@ -39,14 +37,24 @@ def set_background(image_file):
             text-align: center !important;
             margin-bottom: 10px !important;
         }}
+
+        /* MENU LATERAL CUSTOMIZADO */
+        section[data-testid="stSidebar"] {{
+            background-color: rgba(15, 23, 42, 0.95) !important;
+            border-right: 2px solid rgba(255,255,255,0.2) !important;
+        }}
+        section[data-testid="stSidebar"] * {{
+            color: #ffffff !important;
+        }}
         </style>
         """
         st.markdown(css, unsafe_allow_html=True)
-    except: pass
+    except:
+        pass
 
 set_background("fundo.png")
 
-st.markdown("<h1>Agrupador Inteligente de PDFs 📄</h1>", unsafe_allow_html=True)
+st.markdown("<h1>📄 Agrupador Inteligente de PDFs</h1>", unsafe_allow_html=True)
 st.markdown("<p class='subtitulo'>Envie os ficheiros completos. O sistema vai montar o PDF final na ordem: Pedido > Nota Fiscal > Boleto.</p>", unsafe_allow_html=True)
 
 # 3. Identificação
@@ -159,11 +167,10 @@ if st.button("PROCESSAR E JUNTAR PDFs", use_container_width=True, disabled=bloqu
         final_merger.write(output)
         final_merger.close()
         output.seek(0)
-        
+
         st.balloons()
-        # SUBSTITUIÇÃO DO st.success POR HTML CUSTOMIZADO PARA LEITURA TOTAL
         st.markdown("<div class='sucesso-custom'>✅ ARQUIVOS PROCESSADOS COM SUCESSO!</div>", unsafe_allow_html=True)
-        
+
         agora = (datetime.utcnow() - timedelta(hours=3)).strftime("%d-%m-%Y-%Hh%M")
         nome_f = f"{motorista.upper()} ({carga}) - {agora}.pdf"
         st.download_button(label=f"📥 BAIXAR: {nome_f}", data=output, file_name=nome_f, mime="application/pdf", use_container_width=True)
