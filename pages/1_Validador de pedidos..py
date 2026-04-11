@@ -7,7 +7,7 @@ import pyodbc
 import warnings
 
 warnings.filterwarnings("ignore")
-st.set_page_config(page_title="Validador de Pedidos", page_icon="🧪", layout="wide")
+st.set_page_config(page_title="Leitor e Validador ERP", page_icon="🧪", layout="wide")
 
 st.title("🧪 Motor de Validação: Pedidos Vale Milk")
 st.write("Versão 10.6: Corrigido filtro A00_ATIVO para aceitar NULL.")
@@ -26,6 +26,7 @@ def buscar_dados_erp():
 
         df_produtos = pd.read_sql("SELECT CAST(E02_GTIN AS VARCHAR) AS ean, E02_ID AS id_produto, E02_DESC AS descricao FROM E02 WHERE E02_TIPO = 4 AND E02_ATIVO = 1 AND E02_ID <> 58", conn).drop_duplicates(subset=['ean'])
 
+        # CORREÇÃO: A00_ATIVO = 1 OR A00_ATIVO IS NULL
         df_clientes = pd.read_sql("""
             SELECT 
                 CAST(A00_CNPJ_CPF AS VARCHAR) AS cnpj,
@@ -58,7 +59,7 @@ df_clientes_db, df_produtos_db, df_precos_db = buscar_dados_erp()
 
 pedidos_pdf = st.file_uploader("Suba os arquivos PDF para validação", type="pdf", accept_multiple_files=True)
 
-if st.button("EXECUTAR AUDITORIA", type="primary", use_container_width=True):
+if st.button("EXECUTAR AUDITORIA", type="primary", width='stretch'):
     if not pedidos_pdf:
         st.warning("⚠️ Por favor, anexe os arquivos PDF.")
     elif df_precos_db.empty:
@@ -76,7 +77,9 @@ if st.button("EXECUTAR AUDITORIA", type="primary", use_container_width=True):
                         if not texto_pag:
                             continue
 
-                        # Captura cirúrgica: apenas linhas com "CNPJ:"
+                        # =========================================================
+                        # CAPTURA CIRÚRGICA: lê apenas linhas com "CNPJ:"
+                        # =========================================================
                         cnpj_encontrado_na_pagina = None
                         for linha in texto_pag.split('\n'):
                             if 'CNPJ:' in linha:
@@ -88,6 +91,7 @@ if st.button("EXECUTAR AUDITORIA", type="primary", use_container_width=True):
 
                         if cnpj_encontrado_na_pagina:
                             cnpj_acumulado = cnpj_encontrado_na_pagina
+                        # =========================================================
 
                         for linha in texto_pag.split('\n'):
                             match_ean = re.search(r'\b(789\d{10})\b', linha)
@@ -171,4 +175,4 @@ if 'df_final' in st.session_state:
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
         df_exibir.to_excel(writer, index=False, sheet_name='Auditoria')
-    st.download_button("📥 BAIXAR EXCEL LIMPO", buffer.getvalue(), "auditoria_vale_milk.xlsx", use_container_width=True)
+    st.download_button("📥 BAIXAR EXCEL LIMPO", buffer.getvalue(), "auditoria_vale_milk.xlsx", width='stretch')
